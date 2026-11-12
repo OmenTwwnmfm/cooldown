@@ -457,6 +457,8 @@
   'use strict';
 
   var KEY = 'coinguard.v1';
+  // 构建时由 GitHub Actions 替换成 v202611121725 这样的版本号；本地直接打开显示「开发版」
+  var APP_VER = '__APP_VERSION__';
 
   var DEFAULTS = {
     income: { monthly: 8000, workDays: 22, hoursPerDay: 8 },
@@ -482,6 +484,10 @@
   var REASONS = ['无聊', '压力大', '奖励自己', '真的需要', '打折心动', '别人都有'];
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function appVer() {
+    return /^__/.test(String(APP_VER)) ? '开发版' : String(APP_VER);
+  }
 
   function loadState() {
     try {
@@ -1236,7 +1242,7 @@
         '<input id="importFile" type="file" accept=".json,application/json" hidden>' +
       '</section>' +
       '<p class="foot">冷静一下 · 你的时间比购物车贵</p>' +
-      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · 构建 1112g</p>';
+      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · ' + appVer() + '</p>';
   }
 
   // 最近 6 个月：拦下的钱 vs 花掉的钱

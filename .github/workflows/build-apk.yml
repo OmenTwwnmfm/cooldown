@@ -40,8 +40,12 @@ jobs:
 
       - name: 放进 www
         run: |
+          VER="v$(date -u +%Y%m%d%H%M)"
+          echo "APP_VER=$VER" >> "$GITHUB_ENV"
+          echo "APP_CODE=$(date -u +%s)" >> "$GITHUB_ENV"
+          echo "本次版本号：$VER"
           mkdir -p app/www
-          cp spend-guard.html app/www/index.html
+          sed "s/__APP_VERSION__/$VER/g" spend-guard.html > app/www/index.html
           cp manifest.json app/www/manifest.json
           cp sw.js app/www/sw.js
           cp icon-1024.png app/www/icon-1024.png
@@ -72,6 +76,20 @@ jobs:
           }
           SIGN
           echo "已追加固定签名配置"
+
+      - name: 写入版本号
+        working-directory: app
+        run: |
+          cat >> android/app/build.gradle <<GRADLE
+
+          android {
+            defaultConfig {
+              versionName "${APP_VER}"
+              versionCode ${APP_CODE}
+            }
+          }
+          GRADLE
+          echo "已写入版本号 ${APP_VER}（versionCode ${APP_CODE}）"
 
       - name: 修补安全区（原生 insets）
         working-directory: app
@@ -131,9 +149,15 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
+      - name: 重命名 APK
+        run: |
+          D=app/android/app/build/outputs/apk/debug
+          mv "$D/app-debug.apk" "$D/cooldown_${APP_VER}.apk"
+          ls -l "$D"
+
       - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
-          name: cooldown-debug-apk
-          path: app/android/app/build/outputs/apk/debug/*.apk
+          name: cooldown_${{ env.APP_VER }}
+          path: app/android/app/build/outputs/apk/debug/cooldown_*.apk
           if-no-files-found: error

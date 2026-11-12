@@ -111,14 +111,14 @@ git push -u origin main
 ## 4. 下载并装到手机
 
 1. 在绿色的那次运行页面，往下滚到底部 **Artifacts** 区域
-2. 点 **cooldown-debug-apk** 下载（得到一个 zip，**下载需要登录 GitHub**）
-3. 解压，里面是 `app-debug.apk`
+2. 点 **cooldown_v年月日时分** 下载（每次构建用当时的时间命名，比如 `cooldown_v202611121725`；下载需要登录 GitHub）
+3. 解压，里面是 `cooldown_v202611121725.apk`，**文件名就是版本号**
 4. 传到手机：微信/QQ 发给自己、数据线拷贝、或者网盘
 5. 手机上点开 apk → 系统提示「未知来源」→ 允许安装
 
-装好之后叫「冷静一下」，图标是你那张盾牌。
+装好之后叫「冷静一下」，图标是你那张盾牌。设置页最底下那行写的就是当前版本号（例如 `v202611121725`），装了新版可以对一下。
 
-> 产物路径（如果你在本地编译）：`app/android/app/build/outputs/apk/debug/app-debug.apk`
+> 产物路径（如果你在本地编译）：`app/android/app/build/outputs/apk/debug/app-debug.apk`；云端构建会自动改名成 `cooldown_v<版本号>.apk`
 > Actions 的 Artifacts 默认保留 **90 天**，过期就重新跑一次构建。
 
 ---
