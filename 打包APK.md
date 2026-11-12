@@ -1,163 +1,214 @@
-# 把「冷静一下」打包成 APK
+# 打包安卓 APK（GitHub Actions 云端编译）
 
-工程骨架已经建好了，你只需要跑构建。
+不用装 Android Studio、不用装 JDK、不用在自己电脑上编译。把代码推到 GitHub，它替你编译，你只负责下载 APK。
 
-```
-冷静一下/
-├── spend-guard.html          ← 应用本体，唯一需要改的文件
-├── app/
-│   ├── package.json          ← Capacitor 依赖
-│   ├── capacitor.config.json ← 应用名、包名、WebDAV 跨域开关
-│   └── www/                  ← 构建时把 html 复制到这里
-└── .github/workflows/build-apk.yml  ← 云端自动打包
-```
-
-`capacitor.config.json` 里已经开好了两件关键的事：
-
-- `"CapacitorHttp": { "enabled": true }` —— App 内部的请求走原生 HTTP，**不受浏览器跨域限制**，WebDAV 直连坚果云就行，设置里的「中转地址」可以留空。
-- `"server": { "androidScheme": "https" }` —— WebView 走 `https://localhost`，localStorage 不会被当成不安全来源。
+预计耗时：首次 10–15 分钟（要下载 Gradle 和依赖），之后每次 5–8 分钟。
 
 ---
 
-## 路线 A：GitHub Actions 打包（不装 Android Studio）
+## 0. 你需要准备的
 
-适合只是想要一个能装的 APK。
+| 东西 | 说明 |
+| --- | --- |
+| GitHub 账号 | 免费注册 |
+| Git for Windows | https://git-scm.com/download/win ，一路下一步 |
+| 仓库可见性 | 公开：Actions 无限免费；私有：每月 2000 分钟免费（一次构建约 8 分钟，够用 200 次） |
 
-1. 在 GitHub 建一个仓库（私有仓库也能用 Actions，免费额度够）。
-2. 把这个文件夹推上去：
+不想碰命令行的话，装 **GitHub Desktop**（https://desktop.github.com ）代替第 1、2 步，登录、Add local repository、Publish，全程点鼠标。
 
-```bash
-cd "D:\AAAAA_Data\desktop\code\冷静一下"
+---
+
+## 1. 在本机把项目变成 git 仓库
+
+打开 PowerShell（不是 CMD），进到项目目录：
+
+```
+cd D:\AAAAA_Data\desktop\code\冷静一下
+```
+
+> Windows 自带的是 PowerShell 5.1，**不支持 `&&` 连着写**，下面每行单独回车。
+
+第一次用 git 的话先报个名字（只需一次）：
+
+```
+git config --global user.name "你的名字"
+```
+
+```
+git config --global user.email "你的邮箱"
+```
+
+然后初始化：
+
+```
 git init
+```
+
+```
 git add .
-git commit -m "冷静一下"
+```
+
+```
+git commit -m "冷静一下：首版"
+```
+
+```
 git branch -M main
-git remote add origin https://github.com/你的用户名/cooldown.git
+```
+
+---
+
+## 2. 在 GitHub 建仓库并推上去
+
+1. 打开 https://github.com/new
+2. **Repository name** 填 `cooldown`（建议用英文，中文名会让网址变成一长串 `%E5%86%B7...`）
+3. 可见性选 **Public**（想私有也行，见上表）
+4. **不要**勾 "Add a README file"、".gitignore"、license——仓库必须是空的，否则推送会冲突
+5. 点 **Create repository**
+
+回到 PowerShell，把 `<你的用户名>` 换成你的 GitHub 用户名：
+
+```
+git remote add origin https://github.com/<你的用户名>/cooldown.git
+```
+
+```
 git push -u origin main
 ```
 
-3. 推上去后打开仓库的 **Actions** 页，`build-apk` 会自动跑。第一次大约 6–10 分钟（要下 Gradle 和 Android SDK），之后有缓存会快很多。
-4. 跑完点进这次运行，页面底部 **Artifacts** 下载 `cooldown-debug-apk.zip`，解压得到 `app-debug.apk`。
-5. 传到手机，点开安装（首次要允许「安装未知来源应用」）。
+### 推送时会让你输账号密码
 
-以后改了 `spend-guard.html`，`git push` 一次就自动出新 APK，不需要动别的。
+**密码不能填 GitHub 登录密码**（2021 年起就禁了），要用 Personal Access Token：
 
-想手动触发：Actions → build-apk → Run workflow。
+1. GitHub 右上角头像 → **Settings**
+2. 左侧最下面 → **Developer settings**
+3. **Personal access tokens** → **Tokens (classic)**
+4. **Generate new token (classic)**
+5. Note 填 `cooldown`，Expiration 选 90 days，勾选第一个 **`repo`**
+6. 拉到底点 **Generate token**，复制那串 `ghp_` 开头的字符（**只显示这一次**）
 
----
-
-## 路线 B：本地打包
-
-需要两样东西：
-
-| 东西 | 版本 | 说明 |
-|---|---|---|
-| JDK | **21** | Capacitor 7 必须 JDK 21，JDK 17 会直接编译失败 |
-| Android Studio | 最新版 | 装它主要是为了带 Android SDK |
-
-装完确认：
-
-```bash
-java -version     # 要显示 21.x
-```
-
-然后：
-
-```bash
-cd "D:\AAAAA_Data\desktop\code\冷静一下\app"
-
-# 1. 装依赖
-npm install
-
-# 2. 把应用本体放进 www
-mkdir www
-copy ..\spend-guard.html www\index.html
-
-# 3. 生成安卓工程（只需一次，之后 android\ 目录会一直保留）
-npx cap add android
-
-# 4. 同步网页与原生配置（每次改完 html 都要跑）
-npx cap sync android
-
-# 5. 编译
-cd android
-gradlew.bat assembleDebug
-```
-
-产物：
-
-```
-app\android\app\build\outputs\apk\debug\app-debug.apk
-```
-
-以后只改了 html 的话，重复第 2、4、5 步就行。
-
-想用 Android Studio 直接跑：`npx cap open android`，然后按绿色三角。
+推送时：
+- `Username:` 填你的 GitHub 用户名
+- `Password:` 粘贴 token（输入时不显示字符，是正常的）
 
 ---
 
-## 图标和启动图
+## 3. 等它自动编译
 
-默认图标是 Capacitor 的。换自己的：
+推上去之后，GitHub 会自动开始编译（工作流文件 `.github/workflows/build-apk.yml` 已经在仓库里）。
 
-```bash
-cd app
-npm i -D @capacitor/assets
-# 准备两张图放进去：
-#   resources/icon.png    1024×1024，透明背景 PNG
-#   resources/splash.png  2732×2732，中间留出安全区
-npx capacitor-assets generate --android
-npx cap sync android
+1. 打开仓库页面 → 顶部 **Actions** 标签
+2. 左边选 **build-apk**，右边会出现一条正在跑的记录（黄点）
+3. 点进去看进度，一共 9 步：拉代码 → Node 20 → JDK 21 → Android SDK → 装依赖 → 放进 www → 生成 android 工程 → 编译 Debug APK → 上传 APK
+4. 等到变成**绿色对勾**（约 5–15 分钟）
+
+第一次跑会在 Gradle 下载上耗掉大半时间，之后就快了。
+
+> 以后每次 `git push` 到 main 分支都会**自动重新编译**，不用手动点。
+
+---
+
+## 4. 下载并装到手机
+
+1. 在绿色的那次运行页面，往下滚到底部 **Artifacts** 区域
+2. 点 **cooldown-debug-apk** 下载（得到一个 zip，**下载需要登录 GitHub**）
+3. 解压，里面是 `app-debug.apk`
+4. 传到手机：微信/QQ 发给自己、数据线拷贝、或者网盘
+5. 手机上点开 apk → 系统提示「未知来源」→ 允许安装
+
+装好之后叫「冷静一下」，图标是你那张盾牌。
+
+> 产物路径（如果你在本地编译）：`app/android/app/build/outputs/apk/debug/app-debug.apk`
+> Actions 的 Artifacts 默认保留 **90 天**，过期就重新跑一次构建。
+
+---
+
+## 5. 以后改了代码怎么更新
+
+改完 `spend-guard.html`：
+
+```
+git add .
 ```
 
-`icon.png` 用你那个陶土色盾牌就行，四周留 10% 空白，安卓的圆角遮罩会切掉边缘。
-
----
-
-## 正式签名（想长期用、想发出去才需要）
-
-Debug APK 能装能跑，但签名是调试证书，不适合分发，也不能上应用商店。自己长期用其实够。要正式签名：
-
-```bash
-cd app
-keytool -genkey -v -keystore cooldown.keystore -alias cooldown -keyalg RSA -keysize 2048 -validity 36500
+```
+git commit -m "加了冲动热力图"
 ```
 
-记好密码，`cooldown.keystore` **务必自己留一份**——丢了就没法给已安装的用户更新了。
-
-```bash
-npx cap build android --androidreleasetype APK ^
-  --keystorepath cooldown.keystore ^
-  --keystorealias cooldown ^
-  --keystorepass 你的密码 ^
-  --keystorealiaspass 你的密码
+```
+git push
 ```
 
-产物在 `app\android\app\build\outputs\apk\release\`。
+等 Actions 跑完，重新下载安装。
+
+### ⚠️ 这里有个坑：每次构建的签名都不一样
+
+GitHub 的构建机器是全新的，每次都会现场生成一个调试密钥。结果是：**新版本覆盖安装会失败**，提示「应用未安装」或「签名不一致」。
+
+唯一的绕法是先卸载旧版——但**卸载会清空 App 里的全部数据**（localStorage 跟着应用一起没）。
+
+两个对策：
+
+**A. 更新前先备份（省事，但麻烦）**
+1. 打开 App → 设置 → **导出备份**，把 JSON 存到手机文件里
+2. 卸载 → 装新版 → 设置 → **导入备份**
+3. 或者配好 WebDAV 同步，卸载前同步一次，装完再同步下来
+
+**B. 固定签名（一次配置，以后可以直接覆盖安装，数据不丢）**
+
+需要本机有 JDK（装 Android Studio 会自带，或装 Adoptium Temurin 21）。
+
+1. 在项目根目录生成密钥库（一行命令，密码自己换掉，记住它）：
+
+```
+keytool -genkeypair -v -keystore app\cooldown.jks -alias cooldown -keyalg RSA -keysize 2048 -validity 36500 -storepass cooldown123 -keypass cooldown123 -dname "CN=Cooldown, OU=Self, O=Self, L=NA, ST=NA, C=CN"
+```
+
+2. 把它提交进仓库（`.gitignore` 没有排除 `.jks`）：
+
+```
+git add app/cooldown.jks
+```
+
+```
+git commit -m "固定签名"
+```
+
+3. 在 `.github/workflows/build-apk.yml` 里，**「生成 android 工程并同步」这一步的下面**插入一段：
+
+```yaml
+      - name: 固定签名
+        working-directory: app
+        run: |
+          printf '\nandroid {\n  signingConfigs {\n    debug {\n      storeFile file("../../cooldown.jks")\n      storePassword "cooldown123"\n      keyAlias "cooldown"\n      keyPassword "cooldown123"\n    }\n  }\n}\n' >> android/app/build.gradle
+```
+
+4. 推上去。从此每次构建的签名一致，新版可以直接覆盖安装，数据保留。
+
+> 这个 keystore 会跟着仓库公开。它只用于你自己装这个 App，**不要拿它去签任何要上架到应用商店的包**。真要上架，用 `npx cap build android --androidreleasetype AAB` 配一套独立的正式签名。
 
 ---
 
-## 装到手机上要知道的三件事
+## 6. 常见报错对照
 
-1. **数据存在 App 的 WebView 里，卸载就没了。** 装之前先去设置页同步一次，或者导出备份。升级安装（同包名覆盖）不会丢。
-2. **包名 `com.cooldown.app` 一旦装了就不要再改**，改了会被当成另一个应用，两个并存、数据不通。
-3. **返回键已经处理了**：在清单或设置页按返回，先回换算页；在换算页再按一次才退出。
-
----
-
-## 常见报错
-
-| 报错 | 原因 |
-|---|---|
-| `Unsupported class file major version` / `invalid source release: 21` | JDK 版本不对，换 JDK 21，并确认 `JAVA_HOME` 指向它 |
-| `SDK location not found` | 没找到 Android SDK。装 Android Studio 后设 `ANDROID_HOME`，或在 `app\android\local.properties` 写 `sdk.dir=D:\\Android\\Sdk` |
-| `npx cap add android` 报 webDir 不存在 | 先把 html 复制到 `app\www\index.html` 再跑 |
-| Gradle 卡在 `Downloading` | 首次要下 1GB 以上依赖，等着，或者挂代理。国内可换阿里云 Gradle 镜像 |
-| 中文路径偶发报错 | 整个项目挪到纯英文路径，比如 `D:\build\cooldown` |
-| 装的时候提示「应用未安装」 | 手机上已装了包名相同但签名不同的旧版本，先卸载旧的 |
+| 现象 | 原因 | 怎么办 |
+| --- | --- | --- |
+| Actions 里没有 build-apk | `.github/workflows/` 没推上去（隐藏目录漏了） | `git ls-files .github` 确认有没有文件；没有就 `git add .github` 再推 |
+| `Unsupported class file major version` | JDK 版本不对 | 工作流里 JDK 必须是 21（Capacitor 7 的硬要求），不要改成 17 |
+| `Failed to install the following SDK components` | SDK 平台缺失且未接受协议 | 工作流里保留 `android-actions/setup-android@v3` 这一步 |
+| `npx cap add android` 报错 | 依赖没装完或 Node 版本过低 | 确认 `npm install` 那步是绿的；Node 必须是 20 |
+| 构建成功但 Artifacts 是空的 | 没产出 apk | 看最后一步日志，通常是 Gradle 报错但被 `--no-daemon` 掩盖了 |
+| 手机提示「应用未安装」 | 签名不一致（见上一节） | 卸载旧版，或做固定签名 |
+| 更新后数据没了 | 卸载清空了 localStorage | 靠导出备份 / WebDAV 同步找回 |
 
 ---
 
-## 另一个不用 Node 的路子（不推荐）
+## 7. APK 版和网页版的区别
 
-[PWABuilder](https://www.pwabuilder.com/) 可以把一个网址直接打成 APK（TWA 方式）。但要求先把页面用 HTTPS 托管出去，而且它本质还是浏览器内核，**WebDAV 依然受跨域限制**——等于放弃了你现在这套直连方案。只在你连 Node 都不想装、也不用同步的情况下值得考虑。
+| 能力 | 网页版（PWA） | APK |
+| --- | --- | --- |
+| WebDAV 同步 | 受浏览器跨域限制，**要填中转地址** | `CapacitorHttp` 走原生请求，**直接填服务器地址就行** |
+| 离线打开 | 需要 https + Service Worker | 本来就在本地 |
+| 返回键 | 浏览器自己的 | 已接管：在非首页按返回回到首页，首页再按一次退出 |
+| 振动 | 安卓 Chrome 支持 | 支持 |
+| 状态栏 | 浏览器 | 米色状态栏 + 深色图标 |

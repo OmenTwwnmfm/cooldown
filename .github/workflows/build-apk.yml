@@ -34,6 +34,9 @@ jobs:
         run: |
           mkdir -p app/www
           cp spend-guard.html app/www/index.html
+          cp manifest.json app/www/manifest.json
+          cp sw.js app/www/sw.js
+          cp icon-1024.png app/www/icon-1024.png
 
       - name: 生成 android 工程并同步
         working-directory: app

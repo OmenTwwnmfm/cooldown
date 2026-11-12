@@ -1,0 +1,16 @@
+# 依赖与构建产物（CI 里会重新生成，不用提交）
+node_modules/
+app/node_modules/
+app/www/
+app/android/
+*.apk
+*.aab
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 本地备份
+*.before-redesign.html
+备份-*.json

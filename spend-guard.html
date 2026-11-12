@@ -7,6 +7,12 @@
 <meta name="theme-color" content="#1A1917" media="(prefers-color-scheme: dark)" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="冷静一下" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="description" content="买东西之前先算算：要工作多久、能换多少顿饭、攒钱目标会推迟几天。" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-1024.png" />
+<link rel="icon" type="image/png" href="icon-1024.png" />
 <title>冷静一下 · 消费冷静器</title>
 <style>
   :root{
@@ -177,8 +183,15 @@
   .timer-bar{height:4px;border-radius:99px;background:var(--line-2);overflow:hidden}
   .timer-bar>span{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .6s ease}
   .wish.done .timer-bar>span{background:var(--ok)}
-  .wish-actions{display:flex;align-items:center;gap:8px}
+  .wish-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .wish-actions .icon-btn{margin-left:auto}
+  /* 「决定买了」必须按住 3 秒：给坏决定加摩擦力 */
+  .btn-buy{background:var(--surface);border-color:var(--accent-line);color:var(--accent-ink)}
+  .btn-buy.hold{position:relative;overflow:hidden;isolation:isolate;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  .hold-fill{position:absolute;inset:0;z-index:-1;background:var(--accent);transform:scaleX(0);transform-origin:left center;transition:none}
+  .btn-buy.hold.arming .hold-fill{transform:scaleX(1);transition:transform 3s linear}
+  .btn-buy.hold.arming{color:#1C1814;border-color:var(--accent)}
+  .hold-text{position:relative;z-index:1;font-variant-numeric:tabular-nums}
   .icon-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:14px;line-height:1;cursor:pointer;padding:0 7px;border-radius:10px;transition:background .15s,color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
   .icon-btn:hover{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
   .icon-btn:active{background:var(--line-2);color:var(--ink-2)}
@@ -212,11 +225,13 @@
   .seg button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink-2);transition:background .15s,color .15s,border-color .15s}
   .seg button:hover{border-color:#D6D1C2}
   .seg button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-  .item{display:grid;grid-template-columns:32px minmax(0,1fr) 84px 40px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .item{display:grid;grid-template-columns:34px minmax(0,1fr) 84px 40px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
   .item:last-child{border-bottom:0}
   .item input{border:0;background:transparent;font:inherit;outline:none;min-width:0;color:var(--ink)}
   .item input:focus{color:var(--accent-ink)}
-  .item-emoji{font-size:17px;text-align:center;width:100%;padding:0}
+  .item .item-emoji{width:100%;height:32px;padding:0;border:1px solid var(--line-2);border-radius:9px;background:var(--surface-2);font-size:15px;line-height:1;text-align:center;color:var(--ink)}
+  .item .item-emoji:focus{border-color:var(--accent-line);background:var(--surface)}
+  .emoji-inp,.item-emoji{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif}
   .item-name{font-size:14px;font-weight:550}
   .item-price{display:flex;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
   .item-price input{width:56px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;padding:0}
@@ -319,6 +334,47 @@
     .logo,.btn-primary{color:#1A1917}
   }
 
+  /* 0 小时冷静期：入口 + 状态条 + 三重挽留弹层 */
+  .zero-off{display:block;width:100%;margin-top:16px;padding:0;border:0;background:none;color:var(--faint);font-family:inherit;font-size:12px;text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  .zero-off:hover{color:var(--accent)}
+  .zero-on{margin-top:16px;padding:14px;border:1px solid var(--accent-line);border-radius:var(--radius-md);background:var(--accent-soft)}
+  .zero-on b{display:block;margin-bottom:4px;font-size:13px;color:var(--accent-ink)}
+  .zero-on span{display:block;font-size:12px;line-height:1.6;color:var(--accent-ink);opacity:.82}
+  .zero-on .btn{width:100%;margin-top:10px}
+  body.locking{overflow:hidden}
+  .veil{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;background:rgba(20,20,19,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:veilIn .2s ease}
+  .veil[hidden]{display:none}
+  .sheet{width:100%;max-width:560px;padding:26px 22px calc(22px + env(safe-area-inset-bottom));background:var(--surface);border-radius:24px 24px 0 0;box-shadow:0 -14px 44px -22px rgba(20,20,19,.45);animation:sheetUp .26s cubic-bezier(.2,.8,.2,1)}
+  .sheet-step{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;letter-spacing:.06em;color:var(--faint)}
+  .sheet-step i{display:block;height:3px;border-radius:99px;background:var(--line);flex:1 1 auto}
+  .sheet-step i.on{background:var(--accent)}
+  .sheet h3{margin:0 0 10px;font-family:var(--serif);font-size:20px;line-height:1.45;color:var(--ink)}
+  .sheet-body{margin:0 0 22px;font-size:14px;line-height:1.78;color:var(--muted)}
+  .sheet-body b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+  .sheet-actions{display:flex;flex-direction:column;gap:9px}
+  .sheet-actions .btn{width:100%}
+  @keyframes veilIn{from{opacity:0}to{opacity:1}}
+  @keyframes sheetUp{from{transform:translateY(26px)}to{transform:translateY(0)}}
+  /* 角标 / 到期横幅 / 重复冲动 / 最近想过 */
+  .tab{position:relative}
+  .tab-badge{position:absolute;top:2px;left:50%;transform:translateX(9px);min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--faint);color:var(--surface);font-size:10px;font-weight:700;font-style:normal;line-height:16px;text-align:center;font-variant-numeric:tabular-nums}
+  .tab-badge[hidden]{display:none}
+  .tab-badge.due{background:var(--accent)}
+  .due-banner{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:var(--radius-md);text-align:left;cursor:pointer;font-family:inherit}
+  .due-banner .db-txt{flex:1 1 auto;min-width:0}
+  .due-banner b{display:block;font-size:13.5px;font-weight:600;color:var(--accent-ink)}
+  .due-banner em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+  .due-banner .db-go{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--accent-ink)}
+  .echo{margin-top:14px;padding:13px 15px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 var(--radius-md) var(--radius-md) 0}
+  .echo b{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .echo p{margin:4px 0 0;font-size:12.5px;line-height:1.65;color:var(--muted)}
+  .echo p b{font-size:inherit;font-weight:700;color:var(--accent-ink)}
+  .chips.recent{margin-top:8px;opacity:.9}
+  .chip.sm{font-size:11.5px;padding:5px 9px}
+  .wish.leaving{opacity:0;transform:translateX(-18px);transition:opacity .2s ease,transform .2s ease}
+  .btn-buy.hold.done,.btn-buy.hold.done .hold-fill{background:var(--ok);border-color:var(--ok);color:#fff;transform:scaleX(1);transition:none}
+
+
   @media (max-width:380px){
     .app{padding-left:14px;padding-right:14px}
     .price-input{font-size:42px}
@@ -328,7 +384,7 @@
     .stat b{font-size:14.5px}
     .brand-text p{font-size:11px}
     .pill{padding:5px 10px;font-size:11px}
-    .item{grid-template-columns:28px minmax(0,1fr) 74px 36px 24px}
+    .item{grid-template-columns:30px minmax(0,1fr) 74px 36px 24px}
   }
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
@@ -360,6 +416,7 @@
   <button type="button" class="tab" data-tab="wish">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
     <span>冷静清单</span>
+    <i class="tab-badge" data-badge hidden></i>
   </button>
   <button type="button" class="tab" data-tab="set">
     <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg>
@@ -367,6 +424,18 @@
   </button>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="zeroModal" class="veil" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="zeroTitle">
+    <div class="sheet-step"><span id="zeroCount">第 1 次确认</span><i class="on"></i><i></i><i></i></div>
+    <h3 id="zeroTitle">你真的不需要它了吗</h3>
+    <p class="sheet-body" id="zeroBody"></p>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-primary" data-act="zero-cancel">算了，我还是留着</button>
+      <button type="button" class="btn btn-ghost" data-act="zero-next">继续</button>
+    </div>
+  </div>
+</div>
 
 <script src="capacitor.js"></script>
 <script>
@@ -389,6 +458,7 @@
       { id: 'movie', name: '电影', unit: '场', emoji: '🎬', price: 45 }
     ],
     wishlist: [],
+    urgelog: [],
     tomb: { w: {}, i: {} },
     updatedAt: 0
   };
@@ -409,6 +479,7 @@
         settings: Object.assign({}, DEFAULTS.settings, s.settings || {}),
         items: Array.isArray(s.items) ? s.items : clone(DEFAULTS.items),
         wishlist: Array.isArray(s.wishlist) ? s.wishlist : [],
+        urgelog: Array.isArray(s.urgelog) ? s.urgelog : [],
         tomb: s.tomb && typeof s.tomb === 'object' ? { w: s.tomb.w || {}, i: s.tomb.i || {} } : { w: {}, i: {} },
         updatedAt: num(s.updatedAt)
       };
@@ -509,8 +580,13 @@
     return h + ' 小时';
   }
 
+  // 冷静期小时数。允许 0（不冷静），0 只能通过设置页的三重确认入口写入
   function cooldownHours() {
-    return num(S.settings.cooldownHours) || 24;
+    var raw = S.settings.cooldownHours;
+    if (raw === null || typeof raw === 'undefined' || raw === '') return 24;
+    var h = num(raw);
+    if (!(h >= 0)) return 24;
+    return Math.min(720, Math.round(h));
   }
 
   function hourlyWage() {
@@ -670,6 +746,81 @@
     '</div>';
   }
 
+  // ── 冲动日志：每次「想买」都记一笔，用来识别重复冲动 ──
+  function normName(s) {
+    return String(s || '').toLowerCase().replace(/[\s\-_·,，。.!！?？()（）\[\]【】"'“”]/g, '');
+  }
+
+  function pendingList() {
+    return (S.wishlist || []).filter(function (w) { return w.status === 'pending'; });
+  }
+
+  function dueList() {
+    var now = Date.now();
+    return pendingList().filter(function (w) {
+      return now >= num(w.at) + num(w.hours) * 3600000;
+    });
+  }
+
+  function logUrge(name, price) {
+    var shown = String(name || '').trim();
+    if (!shown) return;
+    if (!Array.isArray(S.urgelog)) S.urgelog = [];
+    S.urgelog.unshift({ t: Date.now(), n: normName(shown), name: shown, p: num(price) });
+    if (S.urgelog.length > 400) S.urgelog.length = 400;
+  }
+
+  // 同一个东西，过去 60 天里你已经想过几次
+  function urgeEcho(name) {
+    var n = normName(name);
+    if (n.length < 2) return null;
+    var since = Date.now() - 60 * 86400000;
+    var hits = (S.urgelog || []).filter(function (u) { return u && u.n === n && num(u.t) >= since; });
+    if (!hits.length) return null;
+    var saved = 0;
+    (S.wishlist || []).forEach(function (w) {
+      if (w.status === 'abandoned' && normName(w.name) === n) saved += num(w.price);
+    });
+    return { n: hits.length, saved: saved, name: hits[0].name || String(name) };
+  }
+
+  // 最近想过的东西（按名字去重）
+  function recentUrges(k) {
+    var out = [], seen = {};
+    var list = S.urgelog || [];
+    for (var i = 0; i < list.length && out.length < k; i++) {
+      var u = list[i];
+      if (!u || !u.n || seen[u.n] || !(num(u.p) > 0)) continue;
+      seen[u.n] = 1;
+      out.push({ name: u.name || '没写名字', price: num(u.p) });
+    }
+    return out;
+  }
+
+  // 从淘宝/京东/拼多多的分享文案里抠出价格和标题，纯前端，不联网
+  function parseShareText(txt) {
+    var t = String(txt || '');
+    if (!/https?:\/\//.test(t) && t.indexOf('【') < 0) return null;
+    var m = t.match(/[¥￥]\s*([\d,]+(?:\.\d+)?)/) || t.match(/([\d,]+(?:\.\d+)?)\s*元/);
+    if (!m) return null;
+    var price = num(String(m[1]).replace(/,/g, ''));
+    if (!(price > 0) || price > 9999999) return null;
+    var head = t.split(/https?:\/\//)[0]
+      .replace(/【[^】]*】/g, ' ')
+      .replace(/[¥￥]\s*[\d,.]+/g, ' ')
+      .replace(/复制.{0,10}(打开|查看|访问)[^。]*/g, ' ')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (head.length > 30) head = head.slice(0, 30);
+    if (head.length < 2) head = '';
+    return { price: price, name: head };
+  }
+
+  function buzz(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (err) {}
+  }
+
   function resultsHTML(price, fresh) {
     var hourly = hourlyWage();
     var monthly = num(S.income.monthly);
@@ -679,7 +830,11 @@
     var saveMonthly = num(S.saving.monthlyGoal);
     var saveDays = saveMonthly > 0 ? price / (saveMonthly / 30.44) : 0;
     var items = (S.items || []).filter(function (it) { return num(it.price) > 0; }).slice(0, 10);
-    var cdLabel = hoursLabel(cooldownHours());
+    var cdH = cooldownHours();
+    var cdLabel = hoursLabel(cdH);
+    var cdOff = cdH === 0;
+    var cdWait = cdOff ? '一会儿' : cdLabel + '后';
+    var cdGive = cdOff ? '一点时间' : cdLabel;
     var parts = [];
 
     parts.push(
@@ -689,6 +844,18 @@
         '<div class="s">' + (hourly > 0 ? '来交换它 · 按时薪 ' + money(hourly) + ' 计算' : '去「设置」填上你的月薪，才能换算成时间') + '</div>' +
       '</section>'
     );
+
+    // 同一个东西以前想过、并且忍住了 —— 这是最有说服力的一句话
+    var echo = urgeEcho(draft.name);
+    if (echo) {
+      parts.push(
+        '<section class="echo">' +
+          '<b>这不是第一次</b>' +
+          '<p>过去 60 天里，你在「' + esc(echo.name) + '」上停过 <b>' + echo.n + '</b> 次' +
+          (echo.saved > 0 ? '，省下 ' + money(echo.saved) : '，最后都没有买') + '。这一次也一样吗？</p>' +
+        '</section>'
+      );
+    }
 
     if (monthly > 0) {
       var left = monthly - price;
@@ -735,9 +902,9 @@
     if (pct >= warnAt) {
       var copy;
       if (pct >= 50) {
-        copy = '超过半个月的工资。先别付款，把它放进冷静清单，' + cdLabel + '后再看。';
+        copy = '超过半个月的工资。先别付款，把它放进冷静清单，' + cdWait + '再看。';
       } else if (pct >= 20) {
-        copy = '接近你月薪的四分之一。这不是小钱，给自己 ' + cdLabel + '。';
+        copy = '接近你月薪的四分之一。这不是小钱，给自己 ' + cdGive + '。';
       } else {
         copy = '超过你月薪的 ' + fmtPct(warnAt) + '。放进冷静清单，等一等再决定。';
       }
@@ -751,7 +918,7 @@
 
     parts.push(
       '<div class="actions">' +
-        '<button type="button" class="btn btn-primary" data-act="cooldown">先冷静 ' + cdLabel + ' · 放进清单</button>' +
+        '<button type="button" class="btn btn-primary" data-act="cooldown">' + (cdOff ? '放进清单 · 冷静期已关闭' : '先冷静 ' + cdLabel + ' · 放进清单') + '</button>' +
         '<button type="button" class="btn btn-ghost" data-act="resist">算了，我不买了</button>' +
       '</div>' +
       '<p class="hint">放进清单后，冷静期结束前不能决定购买。给冲动留一点时间。</p>'
@@ -765,7 +932,21 @@
     var reasonChips = REASONS.map(function (r) {
       return '<button type="button" class="chip' + (draft.reason === r ? ' on' : '') + '" data-act="reason" data-reason="' + esc(r) + '" aria-pressed="' + (draft.reason === r) + '">' + esc(r) + '</button>';
     }).join('');
+    var due = dueList();
+    var recents = recentUrges(3);
+    var dueBanner = due.length
+      ? '<button type="button" class="due-banner" data-act="go-wish">' +
+          '<span class="db-txt"><b>' + due.length + ' 件的冷静期结束了</b><em>去看看，还是再等等？</em></span>' +
+          '<span class="db-go">去决定 ›</span>' +
+        '</button>'
+      : '';
+    var recentRow = recents.length
+      ? '<div class="chips recent">' + recents.map(function (r) {
+          return '<button type="button" class="chip sm" data-act="recent" data-name="' + esc(r.name) + '" data-price="' + r.price + '">' + esc(r.name) + ' ¥' + fmtInt(r.price) + '</button>';
+        }).join('') + '</div>'
+      : '';
     return introCard() +
+    dueBanner +
     stripHTML() +
     '<section class="calc">' +
       '<label class="lbl" for="wantPrice">' + (qty > 1 ? '单价是多少' : '这个想买的东西，多少钱') + '</label>' +
@@ -790,6 +971,7 @@
         '<button type="button" class="chip" data-act="quick" data-price="1999">¥1999</button>' +
         '<button type="button" class="chip chip-clear" data-act="clear">清空</button>' +
       '</div>' +
+      recentRow +
       '<div class="reason-wrap">' +
         '<div class="lbl-row"><span class="qty-label" id="reasonLbl">为什么想要</span><span class="rw-opt">可不选</span></div>' +
         '<div class="chips" role="group" aria-labelledby="reasonLbl">' + reasonChips + '</div>' +
@@ -805,7 +987,7 @@
     var rem = w.at + hours * 3600000 - Date.now();
     var done = rem <= 0;
     var pct = done ? 100 : Math.min(100, Math.max(0, (Date.now() - w.at) / total * 100));
-    var label = done ? '冷静期结束，可以决定了' : '冷静期还剩 ' + fmtRemain(rem);
+    var label = hours <= 0 ? '没有冷静期，直接决定' : (done ? '冷静期结束，可以决定了' : '冷静期还剩 ' + fmtRemain(rem));
     var meta = '工作 ' + fmtWork(priceToHours(w.price)) + ' · 月薪的 ' + fmtPct(salaryPct(w.price));
     return '<article class="wish ' + (done ? 'done' : '') + '" data-id="' + esc(w.id) + '" data-status="pending" data-at="' + w.at + '" data-hours="' + hours + '">' +
       '<div class="wish-head">' +
@@ -821,7 +1003,9 @@
       '</div>' +
       '<div class="wish-actions">' +
         '<button type="button" class="btn btn-sm btn-green" data-act="abandon" data-id="' + esc(w.id) + '">不买了</button>' +
-        '<button type="button" class="btn btn-sm btn-ghost" data-act="buy" data-id="' + esc(w.id) + '"' + (done ? '' : ' disabled') + '>' + (done ? '决定买了' : '还得等等') + '</button>' +
+        (done
+          ? '<button type="button" class="btn btn-sm btn-buy hold" data-act="buy-hold" data-id="' + esc(w.id) + '"><span class="hold-fill" aria-hidden="true"></span><span class="hold-text">按住 3 秒</span></button>'
+          : '<button type="button" class="btn btn-sm btn-ghost" data-act="buy" data-id="' + esc(w.id) + '" disabled>还得等等</button>') +
         '<button type="button" class="icon-btn" data-act="remove" data-id="' + esc(w.id) + '" aria-label="从清单移除" title="删除">✕</button>' +
       '</div>' +
     '</article>';
@@ -846,7 +1030,7 @@
   function emptyWish() {
     return '<div class="empty">' +
       '<span class="e" aria-hidden="true">🕰️</span>' +
-      '<p>清单还是空的。<br>想买的东西，先放进来冷静 ' + hoursLabel(cooldownHours()) + '。</p>' +
+      '<p>清单还是空的。<br>想买的东西，先放进来' + (cooldownHours() > 0 ? '冷静 ' + hoursLabel(cooldownHours()) : '放一会儿') + '。</p>' +
     '</div>';
   }
 
@@ -861,7 +1045,7 @@
       .slice(0, 20);
     var ms = monthStats();
     var all = allStats();
-    return '<section class="page-head"><h2>冷静清单</h2><p>先放一放，' + hoursLabel(cooldownHours()) + '后再决定。最快到期的排在最前面。很多想要的东西，会自己消失。</p></section>' +
+    return '<section class="page-head"><h2>冷静清单</h2><p>' + (cooldownHours() > 0 ? '先放一放，' + hoursLabel(cooldownHours()) + '后再决定。' : '冷静期已关闭，放进来就能立刻决定。') + '最快到期的排在最前面。很多想要的东西，会自己消失。</p></section>' +
       '<section class="stats">' +
         '<div class="stat"><span>冷静中</span><b>' + pending.length + ' 件</b></div>' +
         '<div class="stat"><span>本月拦下</span><b class="green-text">' + money(ms.saved) + '</b></div>' +
@@ -883,6 +1067,30 @@
         (suffix ? '<span>' + suffix + '</span>' : '') +
       '</div>' +
     '</div>';
+  }
+
+  // 名称 → 图标猜测表。用户不填图标时按名称自动配一个，省掉在手机键盘里翻 emoji 的麻烦
+  var EMOJI_MAP = [
+    ['蛋', '🥚'], ['奶', '🥛'], ['饭|餐|外卖|食堂', '🍚'], ['奶茶', '🧋'], ['咖啡|拿铁|美式', '☕'],
+    ['地铁|公交|通勤', '🚇'], ['打车|滴滴|出租|网约车', '🚕'], ['电影|影院', '🎬'],
+    ['面包|吐司|蛋糕', '🍞'], ['水果|苹果|香蕉|橙', '🍎'], ['菜|蔬菜|青菜', '🥬'],
+    ['肉|牛排|排骨', '🥩'], ['鸡|炸鸡|烤鸡', '🍗'], ['汉堡|薯条|快餐', '🍔'], ['披萨', '🍕'],
+    ['零食|薯片|坚果', '🍿'], ['酒|啤酒|红酒', '🍺'], ['烟|香烟', '🚬'],
+    ['水|饮料|可乐|气泡', '🥤'], ['茶', '🍵'],
+    ['书|教材|课程', '📚'], ['衣|裤|裙', '👕'], ['鞋', '👟'], ['包|背包', '🎒'],
+    ['药|维生素|口罩', '💊'], ['化妆|护肤|口红|香水', '💄'], ['游戏|皮肤|氪金', '🎮'],
+    ['房租|水电|物业|宽带', '🏠'], ['话费|流量|手机', '📱'], ['健身|瑜伽|跑步', '🏋️'],
+    ['宠物|猫粮|狗粮', '🐾'], ['花|植物', '🌷'], ['理发|美发', '💇'],
+    ['快递|运费', '📦'], ['会员|订阅|VIP', '🔑']
+  ];
+
+  function guessEmoji(name) {
+    var s = String(name || '');
+    if (!s) return '';
+    for (var i = 0; i < EMOJI_MAP.length; i++) {
+      if (new RegExp(EMOJI_MAP[i][0]).test(s)) return EMOJI_MAP[i][1];
+    }
+    return '';
   }
 
   function itemRow(it) {
@@ -936,9 +1144,16 @@
         '<div class="panel-hint">点「先冷静」后，到期前不能决定购买。设置得长一点，更容易省下钱。</div>' +
         '<div class="seg">' + coolOptions + '</div>' +
         '<div class="field plain" style="margin-top:14px">' +
-          '<div class="field-label"><label for="coolCustom">自定义</label><span class="hint-sm">1 – 720 小时</span></div>' +
-          '<div class="inp"><input id="coolCustom" type="number" inputmode="numeric" min="1" max="720" step="1" value="' + cooldown + '"><span>小时</span></div>' +
+          '<div class="field-label"><label for="coolCustom">自定义</label><span class="hint-sm">0 – 720 小时</span></div>' +
+          '<div class="inp"><input id="coolCustom" type="number" inputmode="numeric" min="0" max="720" step="1" value="' + cooldown + '"><span>小时</span></div>' +
         '</div>' +
+        (cooldown === 0
+          ? '<div class="zero-on">' +
+              '<b>现在是 0 小时 · 冷静期已关闭</b>' +
+              '<span>想买的东西放进清单，就能立刻点「决定买了」。这个 App 现在只剩一个计算器。</span>' +
+              '<button type="button" class="btn btn-sm btn-ghost" data-act="cool-restore">恢复 24 小时</button>' +
+            '</div>'
+          : '<button type="button" class="zero-off" data-act="cool-zero">不需要冷静期 · 设为 0 小时</button>') +
       '</section>' +
       '<section class="panel">' +
         '<h3>物品价格库</h3>' +
@@ -1111,6 +1326,7 @@
           settings: Object.assign({}, DEFAULTS.settings, d.settings || {}),
           items: Array.isArray(d.items) ? d.items : clone(DEFAULTS.items),
           wishlist: Array.isArray(d.wishlist) ? d.wishlist : [],
+          urgelog: Array.isArray(d.urgelog) ? d.urgelog : [],
           tomb: d.tomb && typeof d.tomb === 'object' ? { w: d.tomb.w || {}, i: d.tomb.i || {} } : { w: {}, i: {} },
           updatedAt: num(d.updatedAt)
         };
@@ -1328,6 +1544,20 @@
     return out;
   }
 
+  // 冲动日志按时间戳去重合并
+  function mergeUrges(a, b) {
+    var src = (Array.isArray(a) ? a : []).concat(Array.isArray(b) ? b : []);
+    src.sort(function (x, y) { return num(y && y.t) - num(x && x.t); });
+    var seen = {}, out = [];
+    for (var i = 0; i < src.length && out.length < 400; i++) {
+      var u = src[i];
+      if (!u || !u.t || seen[u.t + '|' + u.n]) continue;
+      seen[u.t + '|' + u.n] = 1;
+      out.push(u);
+    }
+    return out;
+  }
+
   function mergeDoc(local, remote) {
     var ln = num(local && local.updatedAt);
     var rn = num(remote && remote.updatedAt);
@@ -1342,7 +1572,8 @@
       items: dropTomb(mergeList(base.items, other.items, function (x) { return num(x._u) || 0; }), tomb.i),
       wishlist: dropTomb(mergeList(base.wishlist, other.wishlist, function (x) {
         return num(x._u) || num(x.decidedAt) || num(x.at) || 0;
-      }), tomb.w)
+      }), tomb.w),
+      urgelog: mergeUrges(local && local.urgelog, remote && remote.urgelog)
     };
     out.updatedAt = Date.now();
     return out;
@@ -1355,6 +1586,7 @@
       settings: Object.assign({}, DEFAULTS.settings, doc.settings || {}),
       items: Array.isArray(doc.items) ? doc.items : clone(DEFAULTS.items),
       wishlist: Array.isArray(doc.wishlist) ? doc.wishlist : [],
+      urgelog: Array.isArray(doc.urgelog) ? doc.urgelog : [],
       tomb: pruneTomb(doc.tomb || {}),
       updatedAt: num(doc.updatedAt)
     };
@@ -1449,15 +1681,16 @@
       var textEl = el.querySelector('.timer-text');
       var pctEl = el.querySelector('.timer-pct');
       var barEl = el.querySelector('.timer-bar > span');
-      var buyBtn = el.querySelector('[data-act="buy"]');
+      var buyBtn = el.querySelector('[data-act="buy"], [data-act="buy-hold"]');
       if (textEl) textEl.textContent = done ? '冷静期结束，可以决定了' : '冷静期还剩 ' + fmtRemain(rem);
       if (pctEl) pctEl.textContent = Math.round(pct) + '%';
       if (barEl) barEl.style.width = pct + '%';
       if (buyBtn) {
         if (done) {
-          buyBtn.disabled = false;
-          buyBtn.textContent = '决定买了';
           el.classList.add('done');
+          if (buyBtn.getAttribute('data-act') !== 'buy-hold') {
+            buyBtn.outerHTML = '<button type="button" class="btn btn-sm btn-buy hold" data-act="buy-hold" data-id="' + esc(el.getAttribute('data-id')) + '"><span class="hold-fill" aria-hidden="true"></span><span class="hold-text">按住 3 秒</span></button>';
+          }
         } else {
           buyBtn.disabled = true;
           buyBtn.textContent = '还得等等';
@@ -1465,6 +1698,13 @@
         }
       }
     }
+    // 有东西到期了而首页还没有横幅 → 补一条（正在输入时不打断）
+    if (tab === 'calc' && !document.querySelector('.due-banner') && dueList().length) {
+      var ae = document.activeElement;
+      var busyTyping = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
+      if (!busyTyping) render();
+    }
+    updateBadge();
   }
 
   function updateSettingsOutputs() {
@@ -1515,6 +1755,20 @@
       if (on) btns[i].setAttribute('aria-current', 'page');
       else btns[i].removeAttribute('aria-current');
     }
+    updateBadge();
+  }
+
+  // 底部「冷静清单」上的数字：还剩几件在等；有到期的就变成强调色
+  function updateBadge() {
+    if (!TABBAR) return;
+    var b = TABBAR.querySelector('[data-badge]');
+    if (!b) return;
+    var pending = pendingList();
+    var due = dueList();
+    if (!pending.length) { b.hidden = true; return; }
+    b.hidden = false;
+    b.textContent = pending.length > 9 ? '9+' : String(pending.length);
+    b.classList.toggle('due', due.length > 0);
   }
 
   function updatePill() {
@@ -1535,30 +1789,175 @@
     render();
   }
 
+  // ───── 0 小时冷静期：三重挽留 ─────
+  var zeroStep = 0;
+  var zeroEl = null;
+
+  function zeroNode() {
+    if (!zeroEl) zeroEl = document.getElementById('zeroModal');
+    return zeroEl;
+  }
+
+  // 三次挽留的角度刻意不同：第一次讲代价，第二次拿自己的真实数据说话，第三次把责任交回去
+  function zeroSteps() {
+    var st = monthStats();
+    var saved = num(st.saved);
+    var hasData = saved > 0;
+    var work = hasData && hourlyWage() > 0 ? fmtWork(priceToHours(saved)) : '';
+    var eq = hasData ? equivalentPhrase(saved) : '';
+    return [
+      {
+        title: '冷静期是这个 App 唯一会说「不」的地方',
+        body: '换算只是把价格翻译成时间，看完你照样可以买。真正拦住你的只有冷静期——它保证你在最想要的那一刻买不成，也保证你有机会改主意。<br>设成 0 小时，这条防线就没了。',
+        next: '我知道，继续'
+      },
+      {
+        title: hasData ? '这个月你已经拦下 <b>' + money(saved) + '</b>' : '你还没有拦下过任何一笔',
+        body: hasData
+          ? (work ? '那是 <b>' + work + '</b>的工作' + eq + '。' : '') + '这些钱没有消失，只是还在你手里。<br>设成 0 小时之后，它们会以同样的速度离开。'
+          : '不是因为你不需要冷静期，而是那个「想买，但算了」的时刻还没到。<br>它一定会来。设成 0 小时，那个时刻就再也不会出现了。',
+        next: '我还是想继续'
+      },
+      {
+        title: '最后一次确认',
+        body: '这个设置随时能改回来。但冲动不会等你改回来——按下确认之后，下次想买的时候，只有你自己拦得住自己。',
+        next: '确认，设为 0 小时'
+      }
+    ];
+  }
+
+  function paintZero() {
+    var box = zeroNode();
+    if (!box) return;
+    var steps = zeroSteps();
+    var last = steps.length - 1;
+    var s = steps[Math.min(zeroStep, last)];
+    var bars = box.querySelectorAll('.sheet-step i');
+    for (var i = 0; i < bars.length; i++) bars[i].className = i <= zeroStep ? 'on' : '';
+    var count = box.querySelector('#zeroCount');
+    count.textContent = '第 ' + (zeroStep + 1) + ' 次确认 · 共 ' + steps.length + ' 次';
+    box.querySelector('#zeroTitle').innerHTML = s.title;
+    box.querySelector('#zeroBody').innerHTML = s.body;
+    var next = box.querySelector('[data-act="zero-next"]');
+    next.textContent = s.next;
+    next.className = zeroStep === last ? 'btn danger-btn' : 'btn btn-ghost';
+    box.querySelector('[data-act="zero-cancel"]').textContent =
+      zeroStep === last ? '算了，我反悔了' : '算了，我还是留着';
+    box.hidden = false;
+    document.body.classList.add('locking');
+  }
+
+  function openZero() {
+    zeroStep = 0;
+    paintZero();
+  }
+
+  function closeZero() {
+    var box = zeroNode();
+    if (box) box.hidden = true;
+    document.body.classList.remove('locking');
+    zeroStep = 0;
+  }
+
+  function zeroNext() {
+    var last = zeroSteps().length - 1;
+    if (zeroStep < last) { zeroStep += 1; paintZero(); return; }
+    S.settings.cooldownHours = 0;
+    save();
+    closeZero();
+    render();
+    toast('冷静期已设为 0 小时 · 随时可以改回来');
+  }
+
+  function coolRestore() {
+    S.settings.cooldownHours = 24;
+    save();
+    render();
+    toast('冷静期已恢复为 24 小时');
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var box = zeroNode();
+    if (e.key === 'Escape' && box && !box.hidden) closeZero();
+  });
+
   function addToCooldown() {
     var price = draftTotal();
     if (!(price > 0)) { toast('先输入一个价格'); return; }
     var hours = cooldownHours();
-    S.wishlist.unshift({ id: uid(), name: wishName(), price: price, at: Date.now(), hours: hours, status: 'pending', reason: draft.reason || '' });
+    var nm = wishName();
+    logUrge(draft.name, price);
+    S.wishlist.unshift({ id: uid(), name: nm, price: price, at: Date.now(), hours: hours, status: 'pending', reason: draft.reason || '' });
     save();
     draft = { name: '', price: '', qty: 1, reason: '' };
     tab = 'wish';
     render();
-    toast('已放进冷静清单，' + hoursLabel(hours) + '后再决定');
+    buzz(12);
+    toast(hours > 0 ? '已放进冷静清单，' + hoursLabel(hours) + '后再决定' : '已放进清单 · 冷静期已关闭');
   }
 
   function resistNow() {
     var price = draftTotal();
     if (!(price > 0)) { toast('先输入一个价格'); return; }
-    S.wishlist.unshift({ id: uid(), name: wishName(), price: price, at: Date.now(), hours: 0, status: 'abandoned', decidedAt: Date.now(), reason: draft.reason || '' });
+    var nm = wishName();
+    logUrge(draft.name, price);
+    S.wishlist.unshift({ id: uid(), name: nm, price: price, at: Date.now(), hours: 0, status: 'abandoned', decidedAt: Date.now(), reason: draft.reason || '' });
     save();
     draft = { name: '', price: '', qty: 1, reason: '' };
     render();
+    buzz([12, 40, 12]);
     toast('忍住了，省下 ' + money(price) + equivalentPhrase(price));
   }
 
+  // ── 按住 3 秒才能「决定买了」：好决定一秒就够，坏决定得用点力气 ──
+  var holdTimer = null, holdEl = null, holdStart = 0;
+  var HOLD_MS = 3000;
+
+  function startHold(btn, id) {
+    if (holdTimer) return;
+    holdEl = btn;
+    holdStart = Date.now();
+    btn.classList.add('arming');
+    buzz(10);
+    var txt = btn.querySelector('.hold-text');
+    if (txt) txt.textContent = '别松手 3.0s';
+    var lastSec = 3;
+    holdTimer = setInterval(function () {
+      var left = HOLD_MS - (Date.now() - holdStart);
+      if (left <= 0) {
+        clearInterval(holdTimer);
+        holdTimer = null;
+        var held = holdEl;
+        holdEl = null;
+        if (held) {
+          held.classList.remove('arming');
+          held.classList.add('done');
+          var ok = held.querySelector('.hold-text');
+          if (ok) ok.textContent = '✓ 记下了';
+        }
+        buzz([16, 60, 40]);
+        setTimeout(function () { decide(id, 'bought'); }, 560);
+        return;
+      }
+      var sec = Math.ceil(left / 1000);
+      if (sec !== lastSec) { lastSec = sec; buzz(6); }
+      var t = btn.querySelector('.hold-text');
+      if (t) t.textContent = '别松手 ' + (left / 1000).toFixed(1) + 's';
+    }, 80);
+  }
+
+  function stopHold(done) {
+    if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
+    if (holdEl) {
+      holdEl.classList.remove('arming');
+      var t = holdEl.querySelector('.hold-text');
+      if (t && !done) t.textContent = '按住 3 秒';
+      holdEl = null;
+    }
+  }
+
   function decide(id, status) {
-    var list = (S.wishlist || []).filter(function (x) { return x.id === id; });
+    var list = (S.wishlist || []).filter(function (x) { return String(x.id) === String(id); });
     var w = list[0];
     if (!w) return;
     if (status === 'bought') {
@@ -1608,8 +2007,8 @@
     var nameEl = document.getElementById('ni-name');
     var priceEl = document.getElementById('ni-price');
     var unitEl = document.getElementById('ni-unit');
-    var emoji = ((emojiEl && emojiEl.value) || '').trim() || '🛍️';
     var name = ((nameEl && nameEl.value) || '').trim();
+    var emoji = ((emojiEl && emojiEl.value) || '').trim() || guessEmoji(name) || '🛍️';
     var price = num(priceEl && priceEl.value);
     var unit = ((unitEl && unitEl.value) || '').trim() || '个';
     if (!name) { toast('写一下物品名称'); return; }
@@ -1644,6 +2043,7 @@
   }
 
   function onDocumentClick(e) {
+    if (e.target && e.target.id === 'zeroModal') { closeZero(); return; }
     var tabBtn = e.target.closest('[data-tab]');
     if (tabBtn && TABBAR && TABBAR.contains(tabBtn)) {
       setTab(tabBtn.getAttribute('data-tab'));
@@ -1675,8 +2075,25 @@
         break;
       case 'cooldown': addToCooldown(); break;
       case 'resist': resistNow(); break;
-      case 'abandon': decide(id, 'abandoned'); break;
+      case 'abandon': {
+        var abCard = btn.closest('.wish');
+        if (abCard) abCard.classList.add('leaving');
+        buzz(10);
+        setTimeout(function () { decide(id, 'abandoned'); }, 200);
+        break;
+      }
+      case 'go-wish': setTab('wish'); break;
+      case 'recent':
+        draft.name = btn.getAttribute('data-name') || '';
+        draft.price = btn.getAttribute('data-price') || '';
+        var rName = document.getElementById('wantName');
+        var rPrice = document.getElementById('wantPrice');
+        if (rName) rName.value = draft.name;
+        if (rPrice) rPrice.value = draft.price;
+        updateCalc();
+        break;
       case 'buy': decide(id, 'bought'); break;
+      case 'buy-hold': toast('按住不放，坚持 3 秒'); break;
       case 'remove': removeWish(id); break;
       case 'undo-remove':
         if (toastActionFn) {
@@ -1690,6 +2107,10 @@
         save();
         render();
         break;
+      case 'cool-zero': openZero(); break;
+      case 'zero-next': zeroNext(); break;
+      case 'zero-cancel': closeZero(); break;
+      case 'cool-restore': coolRestore(); break;
       case 'del-item':
         if (!S.tomb) S.tomb = { w: {}, i: {} };
         if (!S.tomb.i) S.tomb.i = {};
@@ -1721,6 +2142,8 @@
     if (el.id === 'coolCustom') {
       if (el.value === '') return;
       var h = Math.round(num(el.value));
+      // 输入 0 不走普通设置流程，必须从三重挽留里过一遍
+      if (h === 0) { el.value = String(S.settings.cooldownHours); openZero(); return; }
       if (!(h > 0)) return;
       h = Math.min(720, h);
       S.settings.cooldownHours = h;
@@ -1730,6 +2153,13 @@
         segs[k].classList.toggle('on', num(segs[k].getAttribute('data-hours')) === h);
       }
       if (num(el.value) !== h) el.value = String(h);
+      return;
+    }
+
+    // 打名称的时候，左边的图标格实时预览猜出来的 emoji
+    if (el.id === 'ni-name') {
+      var pe = document.getElementById('ni-emoji');
+      if (pe && !pe.value) pe.placeholder = guessEmoji(el.value) || '🍞';
       return;
     }
 
@@ -1765,6 +2195,33 @@
     PILL = document.getElementById('monthPill');
     document.addEventListener('click', onDocumentClick);
     document.addEventListener('input', onInput);
+    // 粘贴淘宝/京东的分享文案 → 自动抠出价格和标题，省掉手动输入
+    document.addEventListener('paste', function (e) {
+      if (tab !== 'calc') return;
+      var cd = e.clipboardData || window.clipboardData;
+      if (!cd) return;
+      var txt = '';
+      try { txt = cd.getData('text') || ''; } catch (err) { return; }
+      if (txt.length < 8) return;
+      var share = parseShareText(txt);
+      if (!share) return;
+      e.preventDefault();
+      draft.price = String(share.price);
+      if (share.name) draft.name = share.name;
+      render();
+      toast('已识别 ' + money(share.price) + (share.name ? ' · ' + share.name : ''));
+    });
+    // 按住 3 秒才放行「决定买了」；松手或滑走即取消
+    document.addEventListener('pointerdown', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('[data-act="buy-hold"]') : null;
+      if (!btn) return;
+      startHold(btn, btn.getAttribute('data-id'));
+    });
+    document.addEventListener('pointerup', function () { stopHold(false); });
+    document.addEventListener('pointercancel', function () { stopHold(false); });
+    document.addEventListener('contextmenu', function (e) {
+      if (e.target && e.target.closest && e.target.closest('[data-act="buy-hold"]')) e.preventDefault();
+    });
     document.addEventListener('change', function (e) {
       if (e.target && e.target.id === 'importFile') {
         importData(e.target.files && e.target.files[0]);
@@ -1794,6 +2251,14 @@
       exitArmed = true;
       toast('再按一次返回键退出');
       setTimeout(function () { exitArmed = false; }, 2000);
+    });
+  }
+
+  // PWA：装到主屏后断网也能打开。file:// 下浏览器不允许注册 service worker，直接跳过
+  var isLocalHost = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if ('serviceWorker' in navigator && !window.Capacitor && (location.protocol === 'https:' || isLocalHost)) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
 

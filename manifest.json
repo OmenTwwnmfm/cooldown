@@ -1,0 +1,29 @@
+{
+  "name": "冷静一下",
+  "short_name": "冷静一下",
+  "description": "买东西之前先算算：要工作多久、能换多少顿饭、攒钱目标会推迟几天。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./spend-guard.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#F5F4EE",
+  "theme_color": "#F5F4EE",
+  "categories": ["finance", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "./icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
