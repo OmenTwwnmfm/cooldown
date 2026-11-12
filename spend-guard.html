@@ -236,7 +236,7 @@
   .seg button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink-2);transition:background .15s,color .15s,border-color .15s}
   .seg button:hover{border-color:#D6D1C2}
   .seg button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-  .item{display:grid;grid-template-columns:34px minmax(0,1fr) 84px 40px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .item{display:grid;grid-template-columns:34px minmax(0,1fr) 84px 8px 40px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
   .item:last-child{border-bottom:0}
   .item input{border:0;background:transparent;font:inherit;outline:none;min-width:0;color:var(--ink)}
   .item input:focus{color:var(--accent-ink)}
@@ -246,9 +246,10 @@
   .item-name{font-size:14px;font-weight:550}
   .item-price{display:flex;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
   .item-price input{width:56px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;padding:0}
+  .item-sep{align-self:center;font-size:11px;line-height:1;text-align:center;color:var(--faint)}
   .item-unit{font-size:12px;color:var(--muted);text-align:center;width:100%;padding:0}
   .item .icon-btn{min-width:28px;min-height:28px;border-color:transparent;background:transparent;font-size:12px;padding:0}
-  .add-item{display:grid;grid-template-columns:44px minmax(0,1fr) 72px 44px;gap:6px;margin-top:14px}
+  .add-item{display:grid;grid-template-columns:44px minmax(0,1fr) 72px 8px 44px;gap:6px;margin-top:14px}
   .mini{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius-sm);padding:9px 8px;font-size:13px;outline:none;min-width:0;color:var(--ink)}
   .mini:focus{border-color:var(--accent);background:var(--surface)}
   .emoji-inp{text-align:center;font-size:16px;padding-left:2px;padding-right:2px}
@@ -397,7 +398,7 @@
     .stat b{font-size:14.5px}
     .brand-text p{font-size:11px}
     .pill{padding:5px 10px;font-size:11px}
-    .item{grid-template-columns:30px minmax(0,1fr) 74px 36px 24px}
+    .item{grid-template-columns:30px minmax(0,1fr) 74px 8px 36px 24px}
   }
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
@@ -473,7 +474,8 @@
     wishlist: [],
     urgelog: [],
     tomb: { w: {}, i: {} },
-    updatedAt: 0
+    updatedAt: 0,
+    wipeAt: 0
   };
 
   // 冲动来源标签：不只记「花了多少」，也记「为什么想买」
@@ -494,7 +496,8 @@
         wishlist: Array.isArray(s.wishlist) ? s.wishlist : [],
         urgelog: Array.isArray(s.urgelog) ? s.urgelog : [],
         tomb: s.tomb && typeof s.tomb === 'object' ? { w: s.tomb.w || {}, i: s.tomb.i || {} } : { w: {}, i: {} },
-        updatedAt: num(s.updatedAt)
+        updatedAt: num(s.updatedAt),
+        wipeAt: num(s.wipeAt)
       };
     } catch (err) {
       return clone(DEFAULTS);
@@ -1113,9 +1116,35 @@
       '<input class="item-emoji" data-field="emoji" maxlength="2" value="' + esc(it.emoji || '🛍️') + '" aria-label="图标">' +
       '<input class="item-name" data-field="name" maxlength="12" value="' + esc(it.name || '') + '" aria-label="名称">' +
       '<div class="item-price"><span>¥</span><input data-field="price" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(it.price)) + '" aria-label="单价"></div>' +
+      '<span class="item-sep" aria-hidden="true">/</span>' +
       '<input class="item-unit" data-field="unit" maxlength="2" value="' + esc(it.unit || '') + '" aria-label="单位">' +
       '<button type="button" class="icon-btn" data-act="del-item" data-id="' + esc(it.id) + '" aria-label="删除">✕</button>' +
     '</div>';
+  }
+
+  // 单位里写了数量（「2个」「2 个」）→ 把单价折算成「每个多少钱」：
+  // ¥30 / 2个 → ¥15 / 个。只在输入框失焦/回车时做，不在打字过程中打断。
+  function normalizeUnit(row) {
+    if (!row) return;
+    var id = row.getAttribute('data-item-id');
+    var unitEl = row.querySelector('[data-field="unit"]');
+    var priceEl = row.querySelector('[data-field="price"]');
+    if (!id || !unitEl) return;
+    var m = /^\s*(\d+(?:\.\d+)?)\s*(.*)$/.exec(String(unitEl.value || ''));
+    if (!m) return;
+    var n = num(m[1]);
+    var rest = String(m[2] || '').replace(/^[\/每·\s]+/, '').trim() || '个';
+    var it = (S.items || []).filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!it) return;
+    var price = num(priceEl && priceEl.value);
+    var per = (n > 1 && price > 0) ? Math.round(price / n * 100) / 100 : price;
+    it.unit = rest;
+    it.price = per;
+    it._u = Date.now();
+    unitEl.value = rest;
+    if (priceEl) priceEl.value = String(per);
+    save();
+    if (n > 1) toast('已折算：¥' + per + ' / ' + rest);
   }
 
   function settingsView() {
@@ -1178,6 +1207,7 @@
           '<input id="ni-emoji" class="mini emoji-inp" maxlength="2" placeholder="🍞" aria-label="图标">' +
           '<input id="ni-name" class="mini" maxlength="12" placeholder="名称，如面包" aria-label="名称">' +
           '<input id="ni-price" class="mini" type="number" inputmode="decimal" min="0" step="any" placeholder="单价" aria-label="单价">' +
+          '<span class="item-sep" aria-hidden="true">/</span>' +
           '<input id="ni-unit" class="mini" maxlength="2" placeholder="单位" aria-label="单位">' +
           '<button type="button" class="btn btn-sm btn-ghost add-btn" data-act="add-item">＋ 添加物品</button>' +
         '</div>' +
@@ -1206,7 +1236,7 @@
         '<input id="importFile" type="file" accept=".json,application/json" hidden>' +
       '</section>' +
       '<p class="foot">冷静一下 · 你的时间比购物车贵</p>' +
-      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · 构建 1112e</p>';
+      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · 构建 1112f</p>';
   }
 
   // 最近 6 个月：拦下的钱 vs 花掉的钱
@@ -1339,7 +1369,8 @@
           wishlist: Array.isArray(d.wishlist) ? d.wishlist : [],
           urgelog: Array.isArray(d.urgelog) ? d.urgelog : [],
           tomb: d.tomb && typeof d.tomb === 'object' ? { w: d.tomb.w || {}, i: d.tomb.i || {} } : { w: {}, i: {} },
-          updatedAt: num(d.updatedAt)
+          updatedAt: num(d.updatedAt),
+          wipeAt: num(d.wipeAt)
         };
         save();
         render();
@@ -1576,6 +1607,29 @@
   }
 
   function mergeDoc(local, remote) {
+    var lw = num(local && local.wipeAt);
+    var rw = num(remote && remote.wipeAt);
+
+    // 远端「清空所有数据」比本机新：照做，别用旧记录把数据填回来
+    if (rw > lw) {
+      var picked = {
+        income: remote.income || local.income,
+        saving: remote.saving || local.saving,
+        settings: remote.settings || local.settings,
+        tomb: mergeTomb(remote.tomb, {}),
+        items: Array.isArray(remote.items) ? remote.items : [],
+        wishlist: Array.isArray(remote.wishlist) ? remote.wishlist : [],
+        urgelog: Array.isArray(remote.urgelog) ? remote.urgelog : [],
+        wipeAt: rw
+      };
+      picked.updatedAt = Date.now();
+      return picked;
+    }
+
+    // 本机刚清空过：远端那些墓碑记的是「清空之前」的世界，必须丢掉。
+    // 不丢的话，清空后恢复出来的示例物品会在两秒后又被删掉（改完又闪没）。
+    if (lw > rw) remote = { updatedAt: 0, tomb: { w: {}, i: {} } };
+
     var ln = num(local && local.updatedAt);
     var rn = num(remote && remote.updatedAt);
     var base = rn > ln ? remote : local;
@@ -1590,7 +1644,8 @@
       wishlist: dropTomb(mergeList(base.wishlist, other.wishlist, function (x) {
         return num(x._u) || num(x.decidedAt) || num(x.at) || 0;
       }), tomb.w),
-      urgelog: mergeUrges(local && local.urgelog, remote && remote.urgelog)
+      urgelog: mergeUrges(local && local.urgelog, remote && remote.urgelog),
+      wipeAt: Math.max(lw, rw)
     };
     out.updatedAt = Date.now();
     return out;
@@ -1605,7 +1660,8 @@
       wishlist: Array.isArray(doc.wishlist) ? doc.wishlist : [],
       urgelog: Array.isArray(doc.urgelog) ? doc.urgelog : [],
       tomb: pruneTomb(doc.tomb || {}),
-      updatedAt: num(doc.updatedAt)
+      updatedAt: num(doc.updatedAt),
+      wipeAt: num(doc.wipeAt)
     };
     save();
     render();
@@ -2172,6 +2228,7 @@
     resetArm = false;
     try { localStorage.removeItem(KEY); } catch (err) {}
     S = clone(DEFAULTS);
+    S.wipeAt = Date.now(); // 打上「清空」时间戳，云端那些旧墓碑和旧记录都不许再回来
     draft = { name: '', price: '', qty: 1, reason: '' };
     save();
     render();
@@ -2339,6 +2396,7 @@
       if (!it) return;
       var field = el.getAttribute('data-field');
       it[field] = field === 'price' ? num(el.value) : el.value;
+      it._u = Date.now(); // 改动时间，同步时用来判断哪边更新
       save();
     }
   }
@@ -2378,9 +2436,11 @@
       if (e.target && e.target.closest && e.target.closest('[data-act="buy-hold"]')) e.preventDefault();
     });
     document.addEventListener('change', function (e) {
-      if (e.target && e.target.id === 'importFile') {
-        importData(e.target.files && e.target.files[0]);
-      }
+      var t = e.target;
+      if (!t || !t.getAttribute) return;
+      if (t.id === 'importFile') { importData(t.files && t.files[0]); return; }
+      // 单位失焦时折算：¥30 + 「2个」→ ¥15 / 个
+      if (t.getAttribute('data-field') === 'unit') normalizeUnit(t.closest('[data-item-id]'));
     });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
