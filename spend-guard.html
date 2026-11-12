@@ -1236,7 +1236,7 @@
         '<input id="importFile" type="file" accept=".json,application/json" hidden>' +
       '</section>' +
       '<p class="foot">冷静一下 · 你的时间比购物车贵</p>' +
-      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · 构建 1112f</p>';
+      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · 构建 1112g</p>';
   }
 
   // 最近 6 个月：拦下的钱 vs 花掉的钱
@@ -1651,8 +1651,25 @@
     return out;
   }
 
+  var composing = false;      // 输入法正在拼字（拼音还没上屏）
+  var davPendingRender = false; // 打字期间收到远端改动，先存着，等失焦再重绘
+
+  function docSignature(d) {
+    if (!d) return '';
+    return JSON.stringify([d.income, d.saving, d.settings, d.items, d.wishlist, d.urgelog, d.tomb, d.wipeAt]);
+  }
+
+  // 焦点在输入框里 / 正在拼字时，绝不能整页重绘：元素被替换掉，安卓会把输入法收起来
+  function isEditing() {
+    if (composing) return true;
+    var a = document.activeElement;
+    if (!a || !a.tagName) return false;
+    var t = a.tagName.toUpperCase();
+    return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || a.isContentEditable === true;
+  }
+
   function applyDoc(doc) {
-    S = {
+    var next = {
       income: Object.assign({}, DEFAULTS.income, doc.income || {}),
       saving: Object.assign({}, DEFAULTS.saving, doc.saving || {}),
       settings: Object.assign({}, DEFAULTS.settings, doc.settings || {}),
@@ -1663,7 +1680,20 @@
       updatedAt: num(doc.updatedAt),
       wipeAt: num(doc.wipeAt)
     };
+    var same = docSignature(next) === docSignature(S);
+    S = next;
+    if (same) return;            // 内容和现在一模一样，重绘没有意义
     save();
+    if (isEditing()) {           // 用户正在打字，先把重绘挂起
+      davPendingRender = true;
+      return;
+    }
+    render();
+  }
+
+  function flushPendingRender() {
+    if (!davPendingRender || isEditing()) return;
+    davPendingRender = false;
     render();
   }
 
@@ -2408,6 +2438,13 @@
     PILL = document.getElementById('monthPill');
     document.addEventListener('click', onDocumentClick);
     document.addEventListener('input', onInput);
+    // 输入法拼字期间不做整页重绘，否则输入框被替换，安卓会把输入法收起来
+    document.addEventListener('compositionstart', function () { composing = true; }, true);
+    document.addEventListener('compositionend', function () { composing = false; }, true);
+    document.addEventListener('focusout', function () {
+      composing = false; // 有的输入法不发 compositionend，失焦时兜底复位
+      setTimeout(flushPendingRender, 300);
+    }, true);
     // 粘贴淘宝/京东的分享文案 → 自动抠出价格和标题，省掉手动输入
     document.addEventListener('paste', function (e) {
       if (tab !== 'calc') return;
