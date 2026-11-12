@@ -40,7 +40,7 @@ jobs:
 
       - name: 放进 www
         run: |
-          VER="v$(date -u +%Y%m%d%H%M)"
+          VER="v$(TZ=Asia/Shanghai date +%Y%m%d%H%M)"
           echo "APP_VER=$VER" >> "$GITHUB_ENV"
           echo "APP_CODE=$(date -u +%s)" >> "$GITHUB_ENV"
           echo "本次版本号：$VER"
