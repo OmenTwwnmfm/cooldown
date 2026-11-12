@@ -236,7 +236,7 @@
   .seg button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink-2);transition:background .15s,color .15s,border-color .15s}
   .seg button:hover{border-color:#D6D1C2}
   .seg button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-  .item{display:grid;grid-template-columns:34px minmax(0,1fr) 84px 8px 40px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .item{display:grid;grid-template-columns:34px minmax(0,1fr) 74px 9px 56px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
   .item:last-child{border-bottom:0}
   .item input{border:0;background:transparent;font:inherit;outline:none;min-width:0;color:var(--ink)}
   .item input:focus{color:var(--accent-ink)}
@@ -246,10 +246,10 @@
   .item-name{font-size:14px;font-weight:550}
   .item-price{display:flex;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
   .item-price input{width:56px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;padding:0}
-  .item-sep{align-self:center;font-size:11px;line-height:1;text-align:center;color:var(--faint)}
+  .item-sep{align-self:center;font-size:12px;line-height:1;text-align:center;color:var(--muted);user-select:none}
   .item-unit{font-size:12px;color:var(--muted);text-align:center;width:100%;padding:0}
   .item .icon-btn{min-width:28px;min-height:28px;border-color:transparent;background:transparent;font-size:12px;padding:0}
-  .add-item{display:grid;grid-template-columns:44px minmax(0,1fr) 72px 8px 44px;gap:6px;margin-top:14px}
+  .add-item{display:grid;grid-template-columns:44px minmax(0,1fr) 64px 9px 48px;gap:6px;margin-top:14px}
   .mini{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius-sm);padding:9px 8px;font-size:13px;outline:none;min-width:0;color:var(--ink)}
   .mini:focus{border-color:var(--accent);background:var(--surface)}
   .emoji-inp{text-align:center;font-size:16px;padding-left:2px;padding-right:2px}
@@ -398,7 +398,7 @@
     .stat b{font-size:14.5px}
     .brand-text p{font-size:11px}
     .pill{padding:5px 10px;font-size:11px}
-    .item{grid-template-columns:30px minmax(0,1fr) 74px 8px 36px 24px}
+    .item{grid-template-columns:30px minmax(0,1fr) 64px 8px 48px 24px}
   }
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
@@ -610,7 +610,7 @@
     if (raw === null || typeof raw === 'undefined' || raw === '') return 24;
     var h = num(raw);
     if (!(h >= 0)) return 24;
-    return Math.min(720, Math.round(h));
+    return Math.min(168, Math.round(h));
   }
 
   function hourlyWage() {
@@ -1123,9 +1123,20 @@
       '<input class="item-name" data-field="name" maxlength="12" value="' + esc(it.name || '') + '" aria-label="名称">' +
       '<div class="item-price"><span>¥</span><input data-field="price" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(it.price)) + '" aria-label="单价"></div>' +
       '<span class="item-sep" aria-hidden="true">/</span>' +
-      '<input class="item-unit" data-field="unit" maxlength="2" value="' + esc(it.unit || '') + '" aria-label="单位">' +
+      '<input class="item-unit" data-field="unit" maxlength="6" value="' + esc(it.unit || '') + '" aria-label="单位">' +
       '<button type="button" class="icon-btn" data-act="del-item" data-id="' + esc(it.id) + '" aria-label="删除">✕</button>' +
     '</div>';
+  }
+
+  // 「2个」「10 个」「1 瓶」→ {n:2, rest:'个'}；克/毫升/升这类计量单位不折算（那是重量，不是件数）
+  function parseUnitCount(raw) {
+    var m = /^\s*(\d+(?:\.\d+)?)\s*(.*)$/.exec(String(raw || ''));
+    if (!m) return null;
+    var n = num(m[1]);
+    var rest = String(m[2] || '').replace(/^[\/每·\s]+/, '').trim() || '个';
+    if (!(n >= 1) || n > 999) return null;
+    if (/克|千克|公斤|斤|两|毫升|升|ml|kg|厘米|小时|分钟|天/i.test(rest)) return null;
+    return { n: n, rest: rest };
   }
 
   // 单位里写了数量（「2个」「2 个」）→ 把单价折算成「每个多少钱」：
@@ -1136,10 +1147,10 @@
     var unitEl = row.querySelector('[data-field="unit"]');
     var priceEl = row.querySelector('[data-field="price"]');
     if (!id || !unitEl) return;
-    var m = /^\s*(\d+(?:\.\d+)?)\s*(.*)$/.exec(String(unitEl.value || ''));
-    if (!m) return;
-    var n = num(m[1]);
-    var rest = String(m[2] || '').replace(/^[\/每·\s]+/, '').trim() || '个';
+    var pc = parseUnitCount(unitEl.value);
+    if (!pc) return;
+    var n = pc.n;
+    var rest = pc.rest;
     var it = (S.items || []).filter(function (x) { return String(x.id) === String(id); })[0];
     if (!it) return;
     var price = num(priceEl && priceEl.value);
@@ -1194,8 +1205,8 @@
         '<div class="panel-hint">点「先冷静」后，到期前不能决定购买。设置得长一点，更容易省下钱。</div>' +
         '<div class="seg">' + coolOptions + '</div>' +
         '<div class="field plain" style="margin-top:14px">' +
-          '<div class="field-label"><label for="coolCustom">自定义</label><span class="hint-sm">0 – 720 小时</span></div>' +
-          '<div class="inp"><input id="coolCustom" type="number" inputmode="numeric" min="0" max="720" step="1" value="' + cooldown + '"><span>小时</span></div>' +
+          '<div class="field-label"><label for="coolCustom">自定义</label><span class="hint-sm">0 – 168 小时（最长 7 天）</span></div>' +
+          '<div class="inp"><input id="coolCustom" type="number" inputmode="numeric" min="0" max="168" step="1" value="' + cooldown + '"><span>小时</span></div>' +
         '</div>' +
         (cooldown === 0
           ? '<div class="zero-on">' +
@@ -1207,14 +1218,14 @@
       '</section>' +
       '<section class="panel">' +
         '<h3>物品价格库</h3>' +
-        '<div class="panel-hint">换算时用来对照。改掉价格，首页会立刻跟着变。</div>' +
+        '<div class="panel-hint">换算时用来对照。改掉价格，首页会立刻跟着变。单位里写数量会自动折算：单价 ¥30 + 单位「2个」→ ¥15 / 个。</div>' +
         '<div class="items">' + (items.length ? items.map(itemRow).join('') : '<div class="sub-line">还没有物品，添加一个吧。</div>') + '</div>' +
         '<div class="add-item">' +
           '<input id="ni-emoji" class="mini emoji-inp" maxlength="2" placeholder="🍞" aria-label="图标">' +
           '<input id="ni-name" class="mini" maxlength="12" placeholder="名称，如面包" aria-label="名称">' +
           '<input id="ni-price" class="mini" type="number" inputmode="decimal" min="0" step="any" placeholder="单价" aria-label="单价">' +
           '<span class="item-sep" aria-hidden="true">/</span>' +
-          '<input id="ni-unit" class="mini" maxlength="2" placeholder="单位" aria-label="单位">' +
+          '<input id="ni-unit" class="mini" maxlength="6" placeholder="单位" aria-label="单位">' +
           '<button type="button" class="btn btn-sm btn-ghost add-btn" data-act="add-item">＋ 添加物品</button>' +
         '</div>' +
       '</section>' +
@@ -2228,6 +2239,12 @@
     var emoji = ((emojiEl && emojiEl.value) || '').trim() || guessEmoji(name) || '🛍️';
     var price = num(priceEl && priceEl.value);
     var unit = ((unitEl && unitEl.value) || '').trim() || '个';
+    // 单位里带数量（「2个」「10 个」）→ 先折算成「每个多少钱」，和列表里编辑时行为一致
+    var pc = parseUnitCount(unit);
+    if (pc) {
+      if (price > 0) price = Math.round(price / pc.n * 100) / 100;
+      unit = pc.rest;
+    }
     if (!name) { toast('写一下物品名称'); return; }
     if (!(price > 0)) { toast('单价要大于 0'); return; }
     S.items.push({ id: uid(), name: name, price: price, unit: unit, emoji: emoji });
@@ -2382,7 +2399,7 @@
       // 输入 0 不走普通设置流程，必须从三重挽留里过一遍
       if (h === 0) { el.value = String(S.settings.cooldownHours); openZero(); return; }
       if (!(h > 0)) return;
-      h = Math.min(720, h);
+      if (h > 168) return; // 超过 7 天先不管，等失焦时再夹到 168，避免打字打到一半被改写
       S.settings.cooldownHours = h;
       save();
       var segs = document.querySelectorAll('[data-act="cool"]');
@@ -2471,8 +2488,23 @@
       var t = e.target;
       if (!t || !t.getAttribute) return;
       if (t.id === 'importFile') { importData(t.files && t.files[0]); return; }
-      // 单位失焦时折算：¥30 + 「2个」→ ¥15 / 个
-      if (t.getAttribute('data-field') === 'unit') normalizeUnit(t.closest('[data-item-id]'));
+      // 冷静期小时数：失焦时把超过 7 天的值夹回来
+      if (t.id === 'coolCustom') {
+        var hv = Math.round(num(t.value));
+        if (!(hv > 0)) hv = num(S.settings.cooldownHours);
+        if (hv > 168) hv = 168;
+        S.settings.cooldownHours = hv;
+        save();
+        t.value = String(hv);
+        var coolSegs = document.querySelectorAll('[data-act="cool"]');
+        for (var ci = 0; ci < coolSegs.length; ci++) {
+          coolSegs[ci].classList.toggle('on', num(coolSegs[ci].getAttribute('data-hours')) === hv);
+        }
+        return;
+      }
+      // 单位或单价失焦时折算：¥30 + 「2个」→ ¥15 / 个
+      var f = t.getAttribute('data-field');
+      if (f === 'unit' || f === 'price') normalizeUnit(t.closest('[data-item-id]'));
     });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
