@@ -208,6 +208,17 @@
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;margin-bottom:12px}
   .panel h3{margin:0 0 12px;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:-.005em}
   .panel-hint{font-size:12px;line-height:1.65;color:var(--muted);margin:-4px 0 12px}
+  /* 二级页（WebDAV 等）入口行 */
+  .nav-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 4px;background:none;border:0;border-radius:12px;text-align:left;cursor:pointer;transition:background .15s}
+  .nav-row:hover{background:var(--surface-2)}
+  .nav-main{min-width:0;display:block}
+  .nav-title{display:block;font-size:14.5px;color:var(--ink);font-weight:550}
+  .nav-sub{display:block;margin-top:3px;font-size:11.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nav-go{flex:0 0 auto;color:var(--faint);font-size:19px;line-height:1;padding:0 2px}
+  .sub-head{display:flex;align-items:center;gap:11px;margin:2px 0 14px}
+  .sub-head h2{margin:0;font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em}
+  .sub-back{flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:var(--surface);border-radius:50%;color:var(--ink-2);font-size:17px;line-height:1;padding:0 2px 3px 0;cursor:pointer}
+  .sub-back:hover{border-color:var(--accent-line);color:var(--accent-ink)}
   .field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-2)}
   .field:last-of-type{border-bottom:0}
   .field-label{min-width:0}
@@ -246,6 +257,8 @@
   .danger-btn:hover{background:#F7E4DB}
   .danger-btn.armed{background:#F2D3C5 !important;border-color:#DFA58E !important;color:#7A2C15 !important}
   .foot{text-align:center;font-size:12px;color:var(--faint);margin:28px 0 4px}
+  .foot.sign{margin:2px 0 4px;font-size:11px;letter-spacing:.03em;opacity:.85}
+  .foot.sign b{font-weight:600;color:var(--muted);font-family:var(--serif)}
 
   /* 底部导航 */
   .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + var(--inset-bottom, 0px));width:min(528px,calc(100% - 24px));display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:0 12px 32px -16px rgba(20,20,19,.3);z-index:20}
@@ -491,6 +504,7 @@
   var S = loadState();
   var draft = { name: '', price: '', qty: 1, reason: '' };
   var tab = 'calc';
+  var sub = '';   // 二级页：'' = 正常三页；'dav' = WebDAV 设置
   var toastTimer = null;
   var toastActionFn = null;
   var resetArm = false;
@@ -724,18 +738,18 @@
     var monthly = num(S.saving.monthlyGoal);
     var pct = Math.min(100, current / target * 100);
     var left = target - current;
-    var sub;
+    var subLine;
     if (left <= 0) {
-      sub = '目标已达成，继续保持 🎉';
+      subLine = '目标已达成，继续保持 🎉';
     } else if (monthly > 0) {
-      sub = money(current) + ' / ' + money(target) + ' · 按每月 ' + money(monthly) + '，还需 ' + Math.ceil(left / monthly) + ' 个月';
+      subLine = money(current) + ' / ' + money(target) + ' · 按每月 ' + money(monthly) + '，还需 ' + Math.ceil(left / monthly) + ' 个月';
     } else {
-      sub = money(current) + ' / ' + money(target);
+      subLine = money(current) + ' / ' + money(target);
     }
     return '<section class="goal">' +
       '<div class="row-head"><span>存款目标</span><b>' + Math.round(pct) + '%</b></div>' +
       '<div class="bar green"><span style="width:' + pct + '%"></span></div>' +
-      '<div class="sub-line">' + sub + '</div>' +
+      '<div class="sub-line">' + subLine + '</div>' +
     '</section>';
   }
 
@@ -1119,10 +1133,6 @@
       return '<button type="button" data-act="cool" data-hours="' + h + '" class="' + (cooldown === h ? 'on' : '') + '">' + (h >= 24 ? (h / 24) + ' 天' : h + ' 小时') + '</button>';
     }).join('');
     var items = S.items || [];
-    var autoOptions = ['1', '0'].map(function (v) {
-      var on = (v === '1') === !!davCfg.auto;
-      return '<button type="button" data-act="dav-auto" data-auto="' + v + '" class="' + (on ? 'on' : '') + '">' + (v === '1' ? '开启' : '关闭') + '</button>';
-    }).join('');
     var freeLine = num(S.income.monthly) > 0
       ? '<div class="derived">本月可自由支配 <b data-out="free">' + money(freeBudget(0)) + '</b><span>月薪 − 攒钱目标 − 本月已花</span></div>'
       : '';
@@ -1173,22 +1183,14 @@
         '</div>' +
       '</section>' +
       '<section class="panel">' +
-        '<h3>同步（WebDAV）</h3>' +
-        '<div class="panel-hint">可选。换手机、清缓存之前，把记录同步到你自己的网盘。账号和密码只存在这台设备，不会写进同步出去的文件。</div>' +
-        davRow('服务器地址', 'url', davCfg.url, 'text', 'https://dav.jianguoyun.com/dav') +
-        davRow('账号', 'user', davCfg.user, 'text', '登录邮箱') +
-        davRow('应用密码', 'pass', davCfg.pass, 'password', '应用密码，不是登录密码') +
-        davRow('远程路径', 'path', davCfg.path, 'text', '冷静一下/state.json') +
-        davRow('中转地址（可选）', 'proxy', davCfg.proxy, 'text', 'https://你的中转.workers.dev') +
-        '<div class="field-label" style="margin-top:16px"><label>自动同步</label><span class="hint-sm">改完 2 秒自动上传</span></div>' +
-        '<div class="seg">' + autoOptions + '</div>' +
-        '<div class="panel-hint">打开 App、切回前台、网络恢复时会自动拉取一次。关掉后只能用「立即同步」。</div>' +
-        '<div class="data-actions">' +
-          '<button type="button" class="btn btn-sm btn-ghost" data-act="dav-test">测试连接</button>' +
-          '<button type="button" class="btn btn-sm btn-primary" data-act="dav-sync">立即同步</button>' +
-        '</div>' +
-        '<div id="davStatus" class="dav-status">' + esc(davCfg.last || '还没同步过') + '</div>' +
-        '<div class="panel-hint dav-note">浏览器直连 WebDAV 会被跨域策略拦下（坚果云、Nextcloud 默认都不返回跨域头）。两个解法：把页面和 WebDAV 放在同一个域名下，或者填一个中转地址。打包成 App 后不需要中转。</div>' +
+        '<h3>同步</h3>' +
+        '<button type="button" class="nav-row" data-act="dav-open">' +
+          '<span class="nav-main">' +
+            '<span class="nav-title">WebDAV 同步</span>' +
+            '<span class="nav-sub">' + esc(davSummary()) + '</span>' +
+          '</span>' +
+          '<span class="nav-go" aria-hidden="true">›</span>' +
+        '</button>' +
       '</section>' +
       '<section class="panel">' +
         '<h3>数据</h3>' +
@@ -1203,7 +1205,8 @@
         '</div>' +
         '<input id="importFile" type="file" accept=".json,application/json" hidden>' +
       '</section>' +
-      '<p class="foot">冷静一下 · 你的时间比购物车贵 · 构建 1112c</p>';
+      '<p class="foot">冷静一下 · 你的时间比购物车贵</p>' +
+      '<p class="foot sign">Powered by <b>OmenTwwnmfm</b> · 构建 1112e</p>';
   }
 
   // 最近 6 个月：拦下的钱 vs 花掉的钱
@@ -1386,10 +1389,15 @@
   var davBusy = false;
 
   function loadDav() {
-    var base = { url: '', user: '', pass: '', path: '冷静一下/state.json', proxy: '', last: '', auto: true };
+    var base = { url: '', user: '', pass: '', path: 'state.json', proxy: '', last: '', auto: true };
     try {
       var raw = localStorage.getItem(DAV_KEY);
-      if (raw) return Object.assign(base, JSON.parse(raw) || {});
+      if (raw) {
+        var cfg = Object.assign(base, JSON.parse(raw) || {});
+        // 早期默认值把文件名塞进了文件夹；还没同步成功过的话，迁移成纯文件名
+        if (cfg.path === '冷静一下/state.json' && !cfg.last) cfg.path = 'state.json';
+        return cfg;
+      }
     } catch (e) {}
     return base;
   }
@@ -1403,8 +1411,9 @@
   }
 
   function davSegs() {
-    var p = String(davCfg.path || '冷静一下/state.json').trim();
-    var segs = p.split('/').filter(function (x) { return x !== ''; });
+    // 只填文件名（state.json）或「文件夹/文件名」都行；顺手兼容反斜杠、首尾斜杠、多点斜杠
+    var p = String(davCfg.path || 'state.json').trim().replace(/\\/g, '/');
+    var segs = p.split('/').map(function (x) { return x.trim(); }).filter(function (x) { return x !== ''; });
     if (!segs.length) segs = ['state.json'];
     return segs;
   }
@@ -1452,7 +1461,7 @@
     if (err.kind === 'network') return '连不上。地址写错、网络不通，或浏览器把跨域请求拦下了，后两种情况下填「中转地址」就能解决';
     if (err.kind === 'status') {
       if (err.status === 403) return '服务器拒绝访问（403），检查账号权限';
-      if (err.status === 404) return '远程路径不存在（404），检查远程路径写法';
+      if (err.status === 404) return '路径不对（404）。远程文件名只填文件名试试，比如 state.json；还没上传过时首次测试报 404 也算正常';
       if (err.status === 405) return '服务器不接受这个操作（405）';
       if (err.status === 409) return '远程目录不存在，自动创建失败（409）';
       if (err.status === 507) return 'WebDAV 空间不足（507）';
@@ -1718,6 +1727,53 @@
     '</div>';
   }
 
+  function davAutoSeg() {
+    return ['1', '0'].map(function (v) {
+      var on = (v === '1') === !!davCfg.auto;
+      return '<button type="button" data-act="dav-auto" data-auto="' + v + '" class="' + (on ? 'on' : '') + '">' + (v === '1' ? '开启' : '关闭') + '</button>';
+    }).join('');
+  }
+
+  // 设置页那一行显示什么：没配 / 配了没同步过 / 上次同步的结果
+  function davSummary() {
+    if (!String(davCfg.url || '').trim()) return '未配置 · 换手机前先同步一次';
+    if (!davCfg.last) return '已填地址 · 还没同步过';
+    return davCfg.last;
+  }
+
+  function davView() {
+    return '<div class="sub-head">' +
+        '<button type="button" class="sub-back" data-act="dav-back" aria-label="返回设置">‹</button>' +
+        '<h2>WebDAV 同步</h2>' +
+      '</div>' +
+      '<section class="panel">' +
+        '<h3>服务器</h3>' +
+        '<div class="panel-hint">换手机、清缓存之前，把记录同步到你自己的网盘。账号和密码只存在这台设备，不会写进同步出去的文件。</div>' +
+        davRow('服务器地址', 'url', davCfg.url, 'text', 'https://dav.jianguoyun.com/dav') +
+        davRow('账号', 'user', davCfg.user, 'text', '登录邮箱') +
+        davRow('应用密码', 'pass', davCfg.pass, 'password', '应用密码，不是登录密码') +
+        davRow('远程文件名', 'path', davCfg.path, 'text', 'state.json') +
+        '<div class="panel-hint" style="margin-top:-6px">只填文件名就行，比如 <b>state.json</b>。想放进网盘的某个文件夹，就写成 <b>文件夹/state.json</b>，文件夹不存在会自动建。</div>' +
+        davRow('中转地址（可选）', 'proxy', davCfg.proxy, 'text', 'https://你的中转.workers.dev') +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>怎么同步</h3>' +
+        '<div class="field-label"><label>自动同步</label><span class="hint-sm">改完 2 秒自动上传</span></div>' +
+        '<div class="seg" style="margin-top:8px">' + davAutoSeg() + '</div>' +
+        '<div class="panel-hint" style="margin-top:12px">打开 App、切回前台、网络恢复时会自动拉取一次。关掉之后只能用下面的按钮手动同步。</div>' +
+        '<div class="data-actions">' +
+          '<button type="button" class="btn btn-sm btn-ghost" data-act="dav-test">测试连接</button>' +
+          '<button type="button" class="btn btn-sm btn-primary" data-act="dav-sync">立即同步</button>' +
+        '</div>' +
+        '<div id="davStatus" class="dav-status">' + esc(davCfg.last || '还没同步过') + '</div>' +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>填法</h3>' +
+        '<div class="panel-hint" style="margin:0">坚果云填 <b>https://dav.jianguoyun.com/dav</b>，账号是登录邮箱；密码要到「账户信息 → 安全选项 → 应用密码」单独生成一个，填那个，不是登录密码。</div>' +
+        '<div class="panel-hint dav-note" style="margin:10px 0 0">浏览器直连 WebDAV 会被跨域策略拦下（坚果云、Nextcloud 默认都不返回跨域头）。两个解法：把页面和 WebDAV 放在同一个域名下，或者填一个中转地址。打包成 App 后不需要中转。</div>' +
+      '</section>';
+  }
+
   function updateCalc() {
     var total = draftTotal();
     var qtyTotal = document.querySelector('.qty-row .qty-total');
@@ -1791,11 +1847,13 @@
 
   function render() {
     if (!VIEW) return;
-    if (tab === 'calc') VIEW.innerHTML = calcView();
+    if (sub === 'dav') VIEW.innerHTML = davView();
+    else if (tab === 'calc') VIEW.innerHTML = calcView();
     else if (tab === 'wish') VIEW.innerHTML = wishView();
     else VIEW.innerHTML = settingsView();
     updateTabs();
     updatePill();
+    if (sub === 'dav') return;
     if (tab === 'calc') updateCalc();
     if (tab === 'wish') tickTimers();
   }
@@ -1806,6 +1864,20 @@
       save();
     }
     tab = t;
+    sub = '';
+    render();
+    try { window.scrollTo(0, 0); } catch (err) {}
+  }
+
+  // 二级页：WebDAV 设置。tab 保持不动，只换 #view 的内容
+  function openDav() {
+    sub = 'dav';
+    render();
+    try { window.scrollTo(0, 0); } catch (err) {}
+  }
+
+  function closeDav() {
+    sub = '';
     render();
     try { window.scrollTo(0, 0); } catch (err) {}
   }
@@ -2190,6 +2262,8 @@
         if (pick) pick.click();
         break;
       case 'clear-decided': clearDecided(btn); break;
+      case 'dav-open': openDav(); break;
+      case 'dav-back': closeDav(); break;
       case 'dav-test': davTest(); break;
       case 'dav-sync': davSync(); break;
       case 'dav-auto':
@@ -2331,6 +2405,7 @@
   if (capApp && capApp.addListener) {
     var exitArmed = false;
     capApp.addListener('backButton', function () {
+      if (sub) { closeDav(); return; }
       if (tab !== 'calc') { setTab('calc'); return; }
       if (exitArmed) { if (capApp.exitApp) capApp.exitApp(); return; }
       exitArmed = true;
