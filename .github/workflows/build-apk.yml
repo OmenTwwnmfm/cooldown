@@ -23,8 +23,16 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      - name: 准备 Android SDK
+        run: |
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          echo "SDK=$SDK"
+          ls "$SDK/platforms" || true
+          ls "$SDK/build-tools" || true
+          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SM" ]; then
+            yes | "$SM" "platforms;android-35" "build-tools;35.0.0" > /dev/null 2>&1 || true
+          fi
 
       - name: 装依赖
         working-directory: app
