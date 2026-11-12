@@ -158,10 +158,12 @@ GitHub 的构建机器是全新的，每次都会现场生成一个调试密钥�
 
 需要本机有 JDK（装 Android Studio 会自带，或装 Adoptium Temurin 21）。
 
+> **本机没有 JDK？** 跳过第 1 步，改用云端生成：GitHub → Actions → 左侧 `make-keystore` → Run workflow → 跑完下载 `cooldown-keystore` 压缩包 → 解压出 `cooldown.jks` 放进 `app\` → 从第 2 步（提交）继续。用完记得删掉 `.github/workflows/make-keystore.yml`，避免以后误跑把密钥换掉。
+
 1. 在项目根目录生成密钥库（一行命令，密码自己换掉，记住它）：
 
 ```
-keytool -genkeypair -v -keystore app\cooldown.jks -alias cooldown -keyalg RSA -keysize 2048 -validity 36500 -storepass cooldown123 -keypass cooldown123 -dname "CN=Cooldown, OU=Self, O=Self, L=NA, ST=NA, C=CN"
+keytool -genkeypair -v -keystore app\cooldown.jks -storetype JKS -alias cooldown -keyalg RSA -keysize 2048 -sigalg SHA256withRSA -validity 36500 -storepass cooldown123 -keypass cooldown123 -dname "CN=Cooldown, OU=Self, O=Self, L=NA, ST=NA, C=CN"
 ```
 
 2. 把它提交进仓库（`.gitignore` 没有排除 `.jks`）：
