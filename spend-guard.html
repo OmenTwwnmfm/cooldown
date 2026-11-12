@@ -526,7 +526,7 @@
   function save() {
     S.updatedAt = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (err) {}
-    davTouch(); // 有改动就排队一次自动同步（没配置或关掉时直接返回）
+    // 自动同步只在「打开」与「退出」两个时机各跑一次，改动的当下不上传
   }
 
   function num(v) {
@@ -1754,8 +1754,7 @@
     });
   }
 
-  // ── 自动同步：改动停下 2 秒就悄悄上传；开机 / 切回前台 / 网络恢复时悄悄拉取 ──
-  var davTimer = null;
+  // ── 自动同步：只在「打开」与「退出」两个时机各跑一次，改动本身不触发上传 ──
   var davApplying = false;
   var davQueued = false;
   var davLastAuto = 0;
@@ -1763,15 +1762,6 @@
 
   function davConfigured() {
     return !!(String((davCfg && davCfg.url) || '').trim() && String((davCfg && davCfg.user) || '').trim());
-  }
-
-  function davTouch() {
-    if (!davCfg || !davCfg.auto) return;
-    if (davApplying) return;
-    if (Date.now() < davHoldUntil) return;
-    if (!davConfigured()) return;
-    clearTimeout(davTimer);
-    davTimer = setTimeout(function () { davSyncAuto(); }, 2000);
   }
 
   function davStamp(prefix) {
@@ -1785,7 +1775,6 @@
   function davSyncAuto() {
     if (!davCfg || !davCfg.auto || !davConfigured()) return;
     if (davBusy || davApplying) { davQueued = true; return; }
-    if (Date.now() - davLastAuto < 6000) { davQueued = true; return; }
     davLastAuto = Date.now();
     davBusy = true;
     davStatus('正在自动同步…');
@@ -1850,9 +1839,9 @@
       '</section>' +
       '<section class="panel">' +
         '<h3>怎么同步</h3>' +
-        '<div class="field-label"><label>自动同步</label><span class="hint-sm">改完 2 秒自动上传</span></div>' +
+        '<div class="field-label"><label>自动同步</label><span class="hint-sm">打开与退出时各同步一次</span></div>' +
         '<div class="seg" style="margin-top:8px">' + davAutoSeg() + '</div>' +
-        '<div class="panel-hint" style="margin-top:12px">打开 App、切回前台、网络恢复时会自动拉取一次。关掉之后只能用下面的按钮手动同步。</div>' +
+        '<div class="panel-hint" style="margin-top:12px">只在打开 App、以及退出（切到后台/锁屏）时各同步一次。改动不会立刻上传，所以用完直接切走就行。关掉之后只能用下面的按钮手动同步。</div>' +
         '<div class="data-actions">' +
           '<button type="button" class="btn btn-sm btn-ghost" data-act="dav-test">测试连接</button>' +
           '<button type="button" class="btn btn-sm btn-primary" data-act="dav-sync">立即同步</button>' +
@@ -2495,12 +2484,14 @@
     render();
     setInterval(function () { if (tab === 'wish') tickTimers(); }, 20000);
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) return;
+      if (document.hidden) {
+        // 退到后台就当作「退出软件」：把这次改的东西同步上去
+        davSyncAuto();
+        return;
+      }
       if (tab === 'wish') tickTimers();
-      davSyncAuto(); // 切回前台，先把别的设备上的改动拉下来
     });
-    window.addEventListener('online', function () { davSyncAuto(); });
-    setTimeout(function () { davSyncAuto(); }, 1200); // 开机静默同步一次
+    setTimeout(function () { davSyncAuto(); }, 1200); // 打开软件时同步一次
   }
 
   // 打包成 App 后：安卓返回键先回首页，在首页再按一次才退出
