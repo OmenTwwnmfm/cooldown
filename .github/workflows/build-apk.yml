@@ -52,6 +52,70 @@ jobs:
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
 
+      - name: 固定签名
+        working-directory: app
+        run: |
+          if [ ! -f cooldown.jks ]; then
+            echo "没有 app/cooldown.jks —— 这次仍用默认调试签名（每次构建都不同，覆盖安装会失败）"
+            exit 0
+          fi
+          cat >> android/app/build.gradle <<'SIGN'
+          android {
+            signingConfigs {
+              debug {
+                storeFile file("../../cooldown.jks")
+                storePassword "cooldown123"
+                keyAlias "cooldown"
+                keyPassword "cooldown123"
+              }
+            }
+          }
+          SIGN
+          echo "已追加固定签名配置"
+
+      - name: 修补安全区（原生 insets）
+        working-directory: app
+        run: |
+          F=android/app/src/main/java/com/cooldown/app/MainActivity.java
+          mkdir -p "$(dirname "$F")"
+          cat > "$F" <<'JAVA'
+          package com.cooldown.app;
+
+          import android.content.res.Configuration;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              View content = findViewById(android.R.id.content);
+              if (content == null) return;
+              boolean dark = (getResources().getConfiguration().uiMode
+                  & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+              content.setBackgroundColor(Color.parseColor(dark ? "#1A1917" : "#F5F4EE"));
+              WindowInsetsControllerCompat wic = WindowCompat.getInsetsController(getWindow(), content);
+              if (wic != null) {
+                wic.setAppearanceLightStatusBars(!dark);
+                wic.setAppearanceLightNavigationBars(!dark);
+              }
+              ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
+                Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(b.left, b.top, b.right, b.bottom);
+                return insets;
+              });
+            }
+          }
+          JAVA
+          echo "已写入 MainActivity（原生安全区）"
+
       - name: 缓存 Gradle
         uses: actions/cache@v4
         with:

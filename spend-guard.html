@@ -57,7 +57,7 @@
   button,input{font:inherit;color:inherit}
   button{cursor:pointer}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-  .app{max-width:560px;margin:0 auto;padding:24px 18px calc(120px + env(safe-area-inset-bottom))}
+  .app{max-width:560px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top, 0px) + var(--cap-top, 0px)) 18px calc(120px + env(safe-area-inset-bottom, 0px) + var(--cap-bottom, 0px))}
 
   /* 顶部 */
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
@@ -248,12 +248,12 @@
   .foot{text-align:center;font-size:12px;color:var(--faint);margin:28px 0 4px}
 
   /* 底部导航 */
-  .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(528px,calc(100% - 24px));display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:0 12px 32px -16px rgba(20,20,19,.3);z-index:20}
+  .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom, 0px) + var(--cap-bottom, 0px));width:min(528px,calc(100% - 24px));display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:0 12px 32px -16px rgba(20,20,19,.3);z-index:20}
   .tab{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;border-radius:12px;padding:8px 4px 7px;color:var(--muted);font-size:11.5px;font-weight:600;transition:background .18s,color .18s}
   .tab:hover{color:var(--ink-2)}
   .tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .tab.active{background:var(--accent-soft);color:var(--accent-ink)}
-  .toast{position:fixed;left:50%;bottom:calc(98px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;line-height:1.4;opacity:0;pointer-events:none;transition:opacity .24s,transform .24s;z-index:30;max-width:calc(100% - 48px);text-align:center;box-shadow:0 14px 30px -14px rgba(0,0,0,.5)}
+  .toast{position:fixed;left:50%;bottom:calc(98px + env(safe-area-inset-bottom, 0px) + var(--cap-bottom, 0px));transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;line-height:1.4;opacity:0;pointer-events:none;transition:opacity .24s,transform .24s;z-index:30;max-width:calc(100% - 48px);text-align:center;box-shadow:0 14px 30px -14px rgba(0,0,0,.5)}
   .toast.has-action{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:9px 11px 9px 17px;text-align:left}
   .toast-btn{border:0;background:transparent;color:inherit;font:inherit;font-weight:650;cursor:pointer;padding:5px 6px;border-radius:999px;text-decoration:underline;text-underline-offset:2px;opacity:.92;-webkit-tap-highlight-color:transparent;white-space:nowrap}
   .toast-btn:hover{opacity:1}
@@ -344,7 +344,7 @@
   body.locking{overflow:hidden}
   .veil{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;background:rgba(20,20,19,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:veilIn .2s ease}
   .veil[hidden]{display:none}
-  .sheet{width:100%;max-width:560px;padding:26px 22px calc(22px + env(safe-area-inset-bottom));background:var(--surface);border-radius:24px 24px 0 0;box-shadow:0 -14px 44px -22px rgba(20,20,19,.45);animation:sheetUp .26s cubic-bezier(.2,.8,.2,1)}
+  .sheet{width:100%;max-width:560px;padding:26px 22px calc(22px + env(safe-area-inset-bottom, 0px) + var(--cap-bottom, 0px));background:var(--surface);border-radius:24px 24px 0 0;box-shadow:0 -14px 44px -22px rgba(20,20,19,.45);animation:sheetUp .26s cubic-bezier(.2,.8,.2,1)}
   .sheet-step{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;letter-spacing:.06em;color:var(--faint)}
   .sheet-step i{display:block;height:3px;border-radius:99px;background:var(--line);flex:1 1 auto}
   .sheet-step i.on{background:var(--accent)}
@@ -503,6 +503,7 @@
   function save() {
     S.updatedAt = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (err) {}
+    davTouch(); // 有改动就排队一次自动同步（没配置或关掉时直接返回）
   }
 
   function num(v) {
@@ -1118,6 +1119,10 @@
       return '<button type="button" data-act="cool" data-hours="' + h + '" class="' + (cooldown === h ? 'on' : '') + '">' + (h >= 24 ? (h / 24) + ' 天' : h + ' 小时') + '</button>';
     }).join('');
     var items = S.items || [];
+    var autoOptions = ['1', '0'].map(function (v) {
+      var on = (v === '1') === !!davCfg.auto;
+      return '<button type="button" data-act="dav-auto" data-auto="' + v + '" class="' + (on ? 'on' : '') + '">' + (v === '1' ? '开启' : '关闭') + '</button>';
+    }).join('');
     var freeLine = num(S.income.monthly) > 0
       ? '<div class="derived">本月可自由支配 <b data-out="free">' + money(freeBudget(0)) + '</b><span>月薪 − 攒钱目标 − 本月已花</span></div>'
       : '';
@@ -1175,6 +1180,9 @@
         davRow('应用密码', 'pass', davCfg.pass, 'password', '应用密码，不是登录密码') +
         davRow('远程路径', 'path', davCfg.path, 'text', '冷静一下/state.json') +
         davRow('中转地址（可选）', 'proxy', davCfg.proxy, 'text', 'https://你的中转.workers.dev') +
+        '<div class="field-label" style="margin-top:16px"><label>自动同步</label><span class="hint-sm">改完 2 秒自动上传</span></div>' +
+        '<div class="seg">' + autoOptions + '</div>' +
+        '<div class="panel-hint">打开 App、切回前台、网络恢复时会自动拉取一次。关掉后只能用「立即同步」。</div>' +
         '<div class="data-actions">' +
           '<button type="button" class="btn btn-sm btn-ghost" data-act="dav-test">测试连接</button>' +
           '<button type="button" class="btn btn-sm btn-primary" data-act="dav-sync">立即同步</button>' +
@@ -1195,7 +1203,7 @@
         '</div>' +
         '<input id="importFile" type="file" accept=".json,application/json" hidden>' +
       '</section>' +
-      '<p class="foot">冷静一下 · 你的时间比购物车贵</p>';
+      '<p class="foot">冷静一下 · 你的时间比购物车贵 · 构建 1112c</p>';
   }
 
   // 最近 6 个月：拦下的钱 vs 花掉的钱
@@ -1378,7 +1386,7 @@
   var davBusy = false;
 
   function loadDav() {
-    var base = { url: '', user: '', pass: '', path: '冷静一下/state.json', proxy: '', last: '' };
+    var base = { url: '', user: '', pass: '', path: '冷静一下/state.json', proxy: '', last: '', auto: true };
     try {
       var raw = localStorage.getItem(DAV_KEY);
       if (raw) return Object.assign(base, JSON.parse(raw) || {});
@@ -1642,6 +1650,62 @@
       davBusy = false;
       davStatus(davExplain(err));
       toast(davExplain(err));
+    });
+  }
+
+  // ── 自动同步：改动停下 2 秒就悄悄上传；开机 / 切回前台 / 网络恢复时悄悄拉取 ──
+  var davTimer = null;
+  var davApplying = false;
+  var davQueued = false;
+  var davLastAuto = 0;
+  var davHoldUntil = 0;
+
+  function davConfigured() {
+    return !!(String((davCfg && davCfg.url) || '').trim() && String((davCfg && davCfg.user) || '').trim());
+  }
+
+  function davTouch() {
+    if (!davCfg || !davCfg.auto) return;
+    if (davApplying) return;
+    if (Date.now() < davHoldUntil) return;
+    if (!davConfigured()) return;
+    clearTimeout(davTimer);
+    davTimer = setTimeout(function () { davSyncAuto(); }, 2000);
+  }
+
+  function davStamp(prefix) {
+    var t = new Date();
+    var hh = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
+    davCfg.last = (prefix || '上次同步') + ' ' + hh + ' · 成功 · 本地 ' + (S.wishlist || []).length + ' 条记录';
+    saveDav();
+    davStatus(davCfg.last);
+  }
+
+  function davSyncAuto() {
+    if (!davCfg || !davCfg.auto || !davConfigured()) return;
+    if (davBusy || davApplying) { davQueued = true; return; }
+    if (Date.now() - davLastAuto < 6000) { davQueued = true; return; }
+    davLastAuto = Date.now();
+    davBusy = true;
+    davStatus('正在自动同步…');
+    davGet().then(function (remote) {
+      var merged = mergeDoc(JSON.parse(JSON.stringify(S)), remote || { updatedAt: 0 });
+      return davPut(merged).then(function () { return merged; });
+    }).then(function (merged) {
+      davApplying = true;
+      try { applyDoc(merged); } finally { davApplying = false; }
+      davHoldUntil = Date.now() + 4000;
+      davBusy = false;
+      davStamp('自动同步');
+      if (davQueued) {
+        davQueued = false;
+        setTimeout(davSyncAuto, 3000);
+      }
+    }).catch(function (err) {
+      davBusy = false;
+      davApplying = false;
+      davQueued = false;
+      davStatus('自动同步失败 · ' + davExplain(err));
     });
   }
 
@@ -2128,6 +2192,23 @@
       case 'clear-decided': clearDecided(btn); break;
       case 'dav-test': davTest(); break;
       case 'dav-sync': davSync(); break;
+      case 'dav-auto':
+        davCfg.auto = btn.getAttribute('data-auto') === '1';
+        saveDav();
+        var davSeg = btn.parentNode;
+        if (davSeg && davSeg.querySelectorAll) {
+          var davAutoBtns = davSeg.querySelectorAll('button[data-act="dav-auto"]');
+          for (var davAi = 0; davAi < davAutoBtns.length; davAi++) {
+            davAutoBtns[davAi].classList.toggle('on', (davAutoBtns[davAi].getAttribute('data-auto') === '1') === !!davCfg.auto);
+          }
+        }
+        if (davCfg.auto) {
+          toast(davConfigured() ? '自动同步已开启' : '先填好地址和账号才会生效');
+          if (davConfigured()) davSyncAuto();
+        } else {
+          toast('自动同步已关闭');
+        }
+        break;
       case 'reset': resetData(btn); break;
     }
   }
@@ -2237,8 +2318,12 @@
     render();
     setInterval(function () { if (tab === 'wish') tickTimers(); }, 20000);
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && tab === 'wish') tickTimers();
+      if (document.hidden) return;
+      if (tab === 'wish') tickTimers();
+      davSyncAuto(); // 切回前台，先把别的设备上的改动拉下来
     });
+    window.addEventListener('online', function () { davSyncAuto(); });
+    setTimeout(function () { davSyncAuto(); }, 1200); // 开机静默同步一次
   }
 
   // 打包成 App 后：安卓返回键先回首页，在首页再按一次才退出
@@ -2261,6 +2346,11 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
+
+  // 手机顶部/底部安全区交给原生层处理（见 .github/workflows/build-apk.yml 的
+  //「修补安全区（原生 insets）」）。安卓 15 起强制 edge-to-edge，WebView 里的
+  // env(safe-area-inset-*) 一律报 0，靠 CSS 猜数值在中低端机上会时灵时不灵，
+  // 所以这里不再猜，只保留 CSS 里的 env(..., 0px) 作为浏览器/PWA 的兜底。
 
   init();
 })();
