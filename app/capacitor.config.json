@@ -1,0 +1,17 @@
+{
+  "appId": "com.cooldown.app",
+  "appName": "冷静一下",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#F5F4EE"
+    }
+  }
+}

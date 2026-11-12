@@ -1,0 +1,1804 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#F5F4EE" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1A1917" media="(prefers-color-scheme: dark)" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="冷静一下" />
+<title>冷静一下 · 消费冷静器</title>
+<style>
+  :root{
+    --bg:#F5F4EE;
+    --surface:#FFFFFF;
+    --surface-2:#FAF9F5;
+    --ink:#141413;
+    --ink-2:#3D3D3A;
+    --muted:#6C6A64;
+    --faint:#A09D94;
+    --line:#E6E3D9;
+    --line-2:#EFEDE6;
+    --accent:#C96442;
+    --accent-hover:#B4553A;
+    --accent-soft:#F6E7DF;
+    --accent-line:#EBCBBB;
+    --accent-ink:#8F3F24;
+    --ok:#3B7257;
+    --ok-soft:#E5EFE8;
+    --ok-line:#C7DCCF;
+    --radius-xl:22px;
+    --radius-lg:18px;
+    --radius-md:14px;
+    --radius-sm:10px;
+    --hero-bg:#141413;
+    --shadow-sm:0 1px 2px rgba(20,20,19,.05);
+    --shadow:0 1px 2px rgba(20,20,19,.05),0 10px 28px -16px rgba(20,20,19,.18);
+    --serif:"Tiempos Headline","Source Han Serif SC","Noto Serif SC","Songti SC","STSong",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  button,input{font:inherit;color:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  .app{max-width:560px;margin:0 auto;padding:24px 18px calc(120px + env(safe-area-inset-bottom))}
+
+  /* 顶部 */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .logo{width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:var(--accent);color:#FFF6F0;display:flex;align-items:center;justify-content:center}
+  .logo svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .brand-text h1{font-family:var(--serif);font-size:20px;margin:0;letter-spacing:-.01em;font-weight:600}
+  .brand-text p{margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--muted);white-space:nowrap}
+  .pill b{color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+
+  /* 时薪条 */
+  .strip{width:100%;display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 4px;margin:0 0 14px;box-shadow:var(--shadow-sm);text-align:center;transition:border-color .15s}
+  .strip:hover{border-color:#D6D1C2}
+  .strip:active{transform:scale(.995)}
+  .strip>div{position:relative;min-width:0}
+  .strip>div+div::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;background:var(--line-2)}
+  .strip span{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+  .strip b{display:block;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}
+
+  /* 引导 */
+  .intro{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .intro b{display:block;font-family:var(--serif);font-size:15px;font-weight:600;margin-bottom:4px}
+  .intro p{margin:0;font-size:12px;line-height:1.65;color:var(--muted)}
+  .intro .btn{flex:0 0 auto}
+
+  /* 换算输入卡 */
+  .calc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-xl);padding:20px 20px 18px;box-shadow:var(--shadow)}
+  .lbl{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px}
+  .price-row{display:flex;align-items:baseline;gap:6px;min-width:0}
+  .price-row .cur{font-family:var(--serif);font-size:26px;color:var(--faint);line-height:1}
+  .price-input{flex:1 1 auto;width:100%;min-width:0;border:0;background:transparent;font-family:var(--serif);font-size:clamp(40px,12.5vw,52px);line-height:1.1;font-weight:500;letter-spacing:-.02em;color:var(--ink);outline:none;padding:0;font-variant-numeric:tabular-nums}
+  .price-input::placeholder{color:#D6D2C6}
+  .name-input{display:block;width:100%;margin-top:14px;border:0;border-bottom:1px solid var(--line);background:transparent;font-size:14px;padding:0 0 10px;color:var(--ink);outline:none;border-radius:0}
+  .name-input:focus{border-bottom-color:var(--accent)}
+  .name-input::placeholder{color:var(--faint)}
+  .qty-row{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .qty-label{font-size:12px;color:var(--muted);font-weight:600}
+  .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);padding:2px}
+  .stepper button{width:30px;height:30px;border:0;background:transparent;border-radius:50%;font-size:16px;color:var(--ink-2);line-height:1}
+  .stepper button:hover:not([disabled]){background:var(--line-2)}
+  .stepper button[disabled]{opacity:.35;cursor:not-allowed}
+  .stepper b{min-width:34px;text-align:center;font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
+  .qty-total{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+  .chip{border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;transition:border-color .15s,background .15s}
+  .chip:hover{border-color:#D6D1C2;background:var(--surface)}
+  .chip-clear{color:var(--muted);border-style:dashed}
+
+  .empty-soft{text-align:center;padding:36px 18px 30px;color:var(--muted)}
+  .empty-soft .es-emoji{font-size:28px;margin-bottom:10px;line-height:1}
+  .empty-soft p{margin:0 0 6px;font-family:var(--serif);font-size:16px;color:var(--ink-2)}
+  .empty-soft span{font-size:12px;line-height:1.7}
+
+  .results.reveal{animation:rise .34s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  /* 结果 */
+  .life{margin-top:14px;background:var(--hero-bg);color:#F5F4EE;border-radius:var(--radius-xl);padding:22px 22px 20px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .life::after{content:"";position:absolute;right:-60px;top:-70px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(217,119,87,.35) 0%,rgba(217,119,87,0) 66%);pointer-events:none}
+  .life .k{font-size:12px;color:#BDB8AC;position:relative;z-index:1}
+  .life .v{font-family:var(--serif);font-size:clamp(28px,8.4vw,36px);font-weight:500;letter-spacing:-.015em;line-height:1.2;margin:8px 0 8px;position:relative;z-index:1}
+  .life .s{font-size:12px;color:#A29D91;line-height:1.6;position:relative;z-index:1}
+  .panel-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px;margin-top:12px}
+  .row-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted)}
+  .row-head b{font-size:15px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+  .bar{height:6px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:12px}
+  .bar>span{display:block;height:100%;border-radius:99px;background:var(--ink);transition:width .55s cubic-bezier(.2,.8,.2,1)}
+  .bar.warn>span{background:var(--accent)}
+  .bar.green>span{background:var(--ok)}
+  .sub-line{font-size:12px;color:var(--muted);line-height:1.65;margin-top:9px}
+  .sub-line+.sub-line{margin-top:3px}
+  .sec-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:22px 4px 10px;font-size:12px;color:var(--muted);font-weight:600}
+  .sec-title span:last-child{color:var(--faint);font-weight:500}
+  .eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .eq{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);padding:12px;min-height:60px;min-width:0}
+  .eq .emo{font-size:22px;line-height:1;flex:0 0 auto}
+  .eq-txt{min-width:0;line-height:1.3}
+  .eq-txt b{display:block;font-size:17px;font-weight:650;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .eq-txt span{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+  .note{display:flex;align-items:flex-start;gap:10px;margin-top:12px;padding:12px 14px;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-md);color:var(--accent-ink);font-size:13px;line-height:1.6}
+  .note svg{flex:0 0 auto;width:18px;height:18px;margin-top:1px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .note p{margin:0}
+  .actions{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+  .btn{appearance:none;border:1px solid transparent;border-radius:var(--radius-md);padding:13px 18px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease,background .15s,border-color .15s,color .15s;line-height:1.25}
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:var(--accent);color:#FFF8F3}
+  .btn-primary:hover{background:var(--accent-hover)}
+  .btn-ghost{background:var(--surface);border-color:var(--line);color:var(--ink-2)}
+  .btn-ghost:hover{background:var(--surface-2);border-color:#D6D1C2}
+  .btn-green{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)}
+  .btn-green:hover{background:#D8EADF}
+  .btn-sm{padding:8px 13px;border-radius:10px;font-size:13px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+  .hint{font-size:12px;color:var(--muted);text-align:center;line-height:1.65;margin:10px 0 0}
+  .goal{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px}
+  .goal .row-head b{color:var(--ok)}
+
+  /* 页面标题与统计 */
+  .page-head{margin:4px 2px 18px}
+  .page-head h2{font-family:var(--serif);font-size:26px;margin:0 0 6px;letter-spacing:-.01em;font-weight:500}
+  .page-head p{margin:0;font-size:13px;color:var(--muted);line-height:1.65}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);padding:13px 12px;min-width:0}
+  .stat span{display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px}
+  .stat b{display:block;font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stats-total{font-size:12px;color:var(--muted);margin:0 4px 18px;line-height:1.6}
+  .stats-total b{color:var(--ink-2);font-weight:650}
+  .green-text{color:var(--ok)}
+
+  /* 冷静清单卡片 */
+  .wish{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+  .wish.done{border-color:var(--ok-line)}
+  .wish-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .wish-main{min-width:0}
+  .wish-name{font-size:15px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .wish-meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.55}
+  .wish-price{font-family:var(--serif);font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wish-price.saved{color:var(--ok)}
+  .timer{margin:14px 0 12px}
+  .timer-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin-bottom:7px}
+  .timer-pct{font-variant-numeric:tabular-nums;color:var(--faint)}
+  .timer-bar{height:4px;border-radius:99px;background:var(--line-2);overflow:hidden}
+  .timer-bar>span{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .6s ease}
+  .wish.done .timer-bar>span{background:var(--ok)}
+  .wish-actions{display:flex;align-items:center;gap:8px}
+  .wish-actions .icon-btn{margin-left:auto}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:14px;line-height:1;cursor:pointer;padding:0 7px;border-radius:10px;transition:background .15s,color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+  .icon-btn:hover{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
+  .icon-btn:active{background:var(--line-2);color:var(--ink-2)}
+  .wish-tail{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+  .wish.decided .icon-btn{min-width:30px;min-height:30px;border-color:transparent;background:transparent;font-size:13px}
+  .wish.decided{padding:13px 16px;box-shadow:none;background:var(--surface-2)}
+  .wish.decided .wish-name{font-size:14px;font-weight:550}
+  .wish.decided .wish-price{font-size:15px}
+  .empty{text-align:center;padding:38px 22px;background:var(--surface);border:1px dashed #D6D1C2;border-radius:var(--radius-xl);color:var(--muted)}
+  .empty .e{display:block;font-size:30px;line-height:1;margin-bottom:12px}
+  .empty p{margin:0;font-size:13px;line-height:1.75}
+
+  /* 设置 */
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;margin-bottom:12px}
+  .panel h3{margin:0 0 12px;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:-.005em}
+  .panel-hint{font-size:12px;line-height:1.65;color:var(--muted);margin:-4px 0 12px}
+  .field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-2)}
+  .field:last-of-type{border-bottom:0}
+  .field-label{min-width:0}
+  .field-label label{font-size:14px;color:var(--ink-2);display:block}
+  .hint-sm{display:block;font-size:11.5px;color:var(--faint);margin-top:2px}
+  .inp{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--surface-2);flex:0 0 auto}
+  .inp:focus-within{border-color:var(--accent);background:var(--surface)}
+  .inp span{font-size:12px;color:var(--muted)}
+  .inp input{border:0;background:transparent;outline:none;width:88px;text-align:right;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;min-width:0;padding:2px 0}
+  .derived{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .derived b{color:var(--ink);font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
+  .derived span{color:var(--faint)}
+  .goal-bar{margin-top:14px}
+  .seg{display:flex;flex-wrap:wrap;gap:7px}
+  .seg button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink-2);transition:background .15s,color .15s,border-color .15s}
+  .seg button:hover{border-color:#D6D1C2}
+  .seg button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .item{display:grid;grid-template-columns:32px minmax(0,1fr) 84px 40px 28px;gap:6px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .item:last-child{border-bottom:0}
+  .item input{border:0;background:transparent;font:inherit;outline:none;min-width:0;color:var(--ink)}
+  .item input:focus{color:var(--accent-ink)}
+  .item-emoji{font-size:17px;text-align:center;width:100%;padding:0}
+  .item-name{font-size:14px;font-weight:550}
+  .item-price{display:flex;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
+  .item-price input{width:56px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;padding:0}
+  .item-unit{font-size:12px;color:var(--muted);text-align:center;width:100%;padding:0}
+  .item .icon-btn{min-width:28px;min-height:28px;border-color:transparent;background:transparent;font-size:12px;padding:0}
+  .add-item{display:grid;grid-template-columns:44px minmax(0,1fr) 72px 44px;gap:6px;margin-top:14px}
+  .mini{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius-sm);padding:9px 8px;font-size:13px;outline:none;min-width:0;color:var(--ink)}
+  .mini:focus{border-color:var(--accent);background:var(--surface)}
+  .emoji-inp{text-align:center;font-size:16px;padding-left:2px;padding-right:2px}
+  .add-btn{grid-column:1 / -1;margin-top:2px}
+  .danger-btn{width:100%;border-color:#EBCFC3;background:#FBF1EC;color:var(--accent-ink)}
+  .danger-btn:hover{background:#F7E4DB}
+  .danger-btn.armed{background:#F2D3C5 !important;border-color:#DFA58E !important;color:#7A2C15 !important}
+  .foot{text-align:center;font-size:12px;color:var(--faint);margin:28px 0 4px}
+
+  /* 底部导航 */
+  .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(528px,calc(100% - 24px));display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:0 12px 32px -16px rgba(20,20,19,.3);z-index:20}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;border-radius:12px;padding:8px 4px 7px;color:var(--muted);font-size:11.5px;font-weight:600;transition:background .18s,color .18s}
+  .tab:hover{color:var(--ink-2)}
+  .tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .tab.active{background:var(--accent-soft);color:var(--accent-ink)}
+  .toast{position:fixed;left:50%;bottom:calc(98px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;line-height:1.4;opacity:0;pointer-events:none;transition:opacity .24s,transform .24s;z-index:30;max-width:calc(100% - 48px);text-align:center;box-shadow:0 14px 30px -14px rgba(0,0,0,.5)}
+  .toast.has-action{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:9px 11px 9px 17px;text-align:left}
+  .toast-btn{border:0;background:transparent;color:inherit;font:inherit;font-weight:650;cursor:pointer;padding:5px 6px;border-radius:999px;text-decoration:underline;text-underline-offset:2px;opacity:.92;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+  .toast-btn:hover{opacity:1}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* 冲动来源 */
+  .reason-wrap{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2)}
+  .lbl-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .rw-opt{font-size:11.5px;color:var(--faint)}
+  .reason-wrap .chips{margin-top:9px}
+  .chip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
+  .tag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent-ink);font-size:10.5px;font-weight:600;line-height:1.75;vertical-align:middle;white-space:nowrap;letter-spacing:0}
+
+  /* 月度复盘 */
+  .report{overflow:hidden}
+  .chart{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:16px}
+  .chart-month{min-width:0;text-align:center}
+  .chart-bars{display:flex;align-items:flex-end;justify-content:center;gap:3px;height:78px;border-bottom:1px solid var(--line);padding-bottom:1px}
+  .chart-bars span{display:block;width:9px;border-radius:3px 3px 0 0;transition:height .55s cubic-bezier(.2,.8,.2,1)}
+  .chart-bars .b-saved{background:var(--ok)}
+  .chart-bars .b-spent{background:var(--accent)}
+  .chart-month em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:7px;white-space:nowrap;overflow:hidden}
+  .legend{display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--muted);margin-top:12px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px}
+  .legend .lg-saved{background:var(--ok)}
+  .legend .lg-spent{background:var(--accent)}
+  .reason-row{display:flex;align-items:center;gap:10px;margin-top:11px;font-size:12.5px;color:var(--muted)}
+  .reason-row .rn{flex:0 0 62px;text-align:right;white-space:nowrap;overflow:hidden}
+  .reason-row .rb{flex:1 1 auto;height:5px;border-radius:99px;background:var(--line-2);overflow:hidden}
+  .reason-row .rb b{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .reason-row .rc{flex:0 0 40px;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* 设置里的自定义输入与数据按钮 */
+  .field.plain{border-bottom:0;padding-bottom:0}
+  .data-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .data-actions .btn{flex:1 1 130px;width:auto}
+  .data-actions + .data-actions{margin-top:8px}
+  .field.wide{display:block;padding:11px 0}
+  .field.wide .field-label{margin-bottom:6px}
+  .field.wide .inp{width:100%;flex:1 1 auto}
+  .field.wide .inp input{width:100%;text-align:left;font-size:13px;font-weight:500;font-variant-numeric:normal;letter-spacing:0}
+  .dav-status{margin-top:10px;padding:8px 11px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line-2);font-size:12px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
+  .dav-note{margin-top:12px;margin-bottom:0}
+
+  /* 深色模式 */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1A1917;
+      --surface:#232220;
+      --surface-2:#2A2926;
+      --ink:#F2EFE7;
+      --ink-2:#D8D4C9;
+      --muted:#A19C8E;
+      --faint:#7B7667;
+      --line:#393732;
+      --line-2:#302E2A;
+      --accent:#D97654;
+      --accent-hover:#E78A66;
+      --accent-soft:#38231B;
+      --accent-line:#57352A;
+      --accent-ink:#EFB69E;
+      --ok:#7FBFA0;
+      --ok-soft:#22322B;
+      --ok-line:#38544A;
+      --hero-bg:#0E0D0B;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.7);
+    }
+    .strip:hover,.chip:hover,.btn-ghost:hover,.seg button:hover{border-color:#4A4741}
+    .price-input::placeholder{color:#4E4A43}
+    .empty{border-color:#4A4741}
+    .tabbar{background:rgba(35,34,32,.92);box-shadow:0 12px 32px -16px rgba(0,0,0,.7)}
+    .btn-green:hover{background:#2A3F35}
+    .danger-btn{border-color:#533327;background:#31201A;color:#E9A88F}
+    .danger-btn:hover{background:#3A261E}
+    .danger-btn.armed{background:#582A1C !important;border-color:#7E4029 !important;color:#F3C4B2 !important}
+    .logo,.btn-primary{color:#1A1917}
+  }
+
+  @media (max-width:380px){
+    .app{padding-left:14px;padding-right:14px}
+    .price-input{font-size:42px}
+    .life .v{font-size:29px}
+    .stats{gap:7px}
+    .stat{padding:11px 9px}
+    .stat b{font-size:14.5px}
+    .brand-text p{font-size:11px}
+    .pill{padding:5px 10px;font-size:11px}
+    .item{grid-template-columns:28px minmax(0,1fr) 74px 36px 24px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.3-2.9 7.7-7 9-4.1-1.3-7-4.7-7-9V6l7-3z"/><path d="M9.4 9.4l2.6 3 2.6-3M12 9v6.6M9.8 12.6h4.4"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>冷静一下</h1>
+        <p>买之前，先换算成你的时间</p>
+      </div>
+    </div>
+    <div class="pill" id="monthPill">本月拦下 <b>¥0</b></div>
+  </header>
+  <main id="view" class="view"></main>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="主导航">
+  <button type="button" class="tab active" data-tab="calc">
+    <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/></svg>
+    <span>换算</span>
+  </button>
+  <button type="button" class="tab" data-tab="wish">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <span>冷静清单</span>
+  </button>
+  <button type="button" class="tab" data-tab="set">
+    <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg>
+    <span>设置</span>
+  </button>
+</nav>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="capacitor.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'coinguard.v1';
+
+  var DEFAULTS = {
+    income: { monthly: 8000, workDays: 22, hoursPerDay: 8 },
+    saving: { monthlyGoal: 2000, target: 50000, current: 0 },
+    settings: { cooldownHours: 24, warnPercent: 5, introDismissed: false },
+    items: [
+      { id: 'egg', name: '鸡蛋', unit: '个', emoji: '🥚', price: 1.2 },
+      { id: 'milk', name: '牛奶', unit: '瓶', emoji: '🥛', price: 3.5 },
+      { id: 'meal', name: '饭', unit: '顿', emoji: '🍚', price: 18 },
+      { id: 'milktea', name: '奶茶', unit: '杯', emoji: '🧋', price: 15 },
+      { id: 'coffee', name: '咖啡', unit: '杯', emoji: '☕', price: 22 },
+      { id: 'metro', name: '地铁', unit: '次', emoji: '🚇', price: 5 },
+      { id: 'movie', name: '电影', unit: '场', emoji: '🎬', price: 45 }
+    ],
+    wishlist: [],
+    tomb: { w: {}, i: {} },
+    updatedAt: 0
+  };
+
+  // 冲动来源标签：不只记「花了多少」，也记「为什么想买」
+  var REASONS = ['无聊', '压力大', '奖励自己', '真的需要', '打折心动', '别人都有'];
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return clone(DEFAULTS);
+      var s = JSON.parse(raw);
+      return {
+        income: Object.assign({}, DEFAULTS.income, s.income || {}),
+        saving: Object.assign({}, DEFAULTS.saving, s.saving || {}),
+        settings: Object.assign({}, DEFAULTS.settings, s.settings || {}),
+        items: Array.isArray(s.items) ? s.items : clone(DEFAULTS.items),
+        wishlist: Array.isArray(s.wishlist) ? s.wishlist : [],
+        tomb: s.tomb && typeof s.tomb === 'object' ? { w: s.tomb.w || {}, i: s.tomb.i || {} } : { w: {}, i: {} },
+        updatedAt: num(s.updatedAt)
+      };
+    } catch (err) {
+      return clone(DEFAULTS);
+    }
+  }
+
+  var S = loadState();
+  var draft = { name: '', price: '', qty: 1, reason: '' };
+  var tab = 'calc';
+  var toastTimer = null;
+  var toastActionFn = null;
+  var resetArm = false;
+  var resetTimer = null;
+  var clearArm = false;
+  var clearTimer = null;
+
+  var VIEW, TABBAR, TOAST, PILL;
+
+  function save() {
+    S.updatedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (err) {}
+  }
+
+  function num(v) {
+    var n = parseFloat(v);
+    return isFinite(n) ? n : 0;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function money(n) {
+    n = num(n);
+    var sign = n < 0 ? '-' : '';
+    n = Math.abs(n);
+    var s = n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return sign + '¥' + s;
+  }
+
+  function fmtInt(n) {
+    return Math.floor(num(n)).toLocaleString('zh-CN');
+  }
+
+  function fmtPct(n) {
+    n = num(n);
+    if (n <= 0) return '0%';
+    if (n < 10) {
+      var v = Math.round(n * 10) / 10;
+      return String(v).replace(/\.0$/, '') + '%';
+    }
+    return Math.round(n).toLocaleString('zh-CN') + '%';
+  }
+
+  function fmtWork(hours) {
+    hours = num(hours);
+    if (!(hours > 0)) return '不到 1 小时';
+    var hpd = num(S.income.hoursPerDay) || 8;
+    if (hours >= hpd) {
+      var d = Math.floor(hours / hpd);
+      var h = Math.round(hours - d * hpd);
+      if (h >= hpd) { d += 1; h = 0; }
+      return h > 0 ? d + ' 天 ' + h + ' 小时' : d + ' 天';
+    }
+    var hh = Math.floor(hours);
+    var mm = Math.round((hours - hh) * 60);
+    if (hh === 0) return Math.max(1, mm) + ' 分钟';
+    return mm > 0 ? hh + ' 小时 ' + mm + ' 分' : hh + ' 小时';
+  }
+
+  function fmtRemain(ms) {
+    if (ms <= 0) return '0 分钟';
+    var mins = Math.ceil(ms / 60000);
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h >= 24) {
+      var d = Math.floor(h / 24);
+      var rh = h % 24;
+      return d + ' 天' + (rh > 0 ? ' ' + rh + ' 小时' : '');
+    }
+    if (h > 0) return h + ' 小时' + (m > 0 ? ' ' + m + ' 分' : '');
+    return m + ' 分钟';
+  }
+
+  function fmtDate(ts) {
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+
+  function hoursLabel(h) {
+    h = num(h);
+    if (h >= 24 && h % 24 === 0) return (h / 24) + ' 天';
+    return h + ' 小时';
+  }
+
+  function cooldownHours() {
+    return num(S.settings.cooldownHours) || 24;
+  }
+
+  function hourlyWage() {
+    var denom = num(S.income.workDays) * num(S.income.hoursPerDay);
+    return denom > 0 ? num(S.income.monthly) / denom : 0;
+  }
+
+  function dailyWage() {
+    var days = num(S.income.workDays);
+    return days > 0 ? num(S.income.monthly) / days : 0;
+  }
+
+  function priceToHours(price) {
+    var hourly = hourlyWage();
+    return hourly > 0 ? num(price) / hourly : 0;
+  }
+
+  function salaryPct(price) {
+    var monthly = num(S.income.monthly);
+    return monthly > 0 ? num(price) / monthly * 100 : 0;
+  }
+
+  // 本月拦下 / 花掉（按决定日期所在的自然月统计）
+  function monthStats() {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var saved = 0;
+    var spent = 0;
+    (S.wishlist || []).forEach(function (w) {
+      if (w.status !== 'abandoned' && w.status !== 'bought') return;
+      var d = new Date(w.decidedAt || w.at);
+      if (d.getFullYear() === y && d.getMonth() === m) {
+        if (w.status === 'abandoned') saved += num(w.price);
+        else spent += num(w.price);
+      }
+    });
+    return { saved: saved, spent: spent };
+  }
+
+  // 累计统计（全部历史）
+  function allStats() {
+    var saved = 0;
+    var resisted = 0;
+    (S.wishlist || []).forEach(function (w) {
+      if (w.status === 'abandoned') {
+        saved += num(w.price);
+        resisted += 1;
+      }
+    });
+    return { saved: saved, resisted: resisted };
+  }
+
+  // 本月自由支配的钱 = 月薪 - 每月攒钱目标 - 本月已花 - 额外支出
+  function freeBudget(extra) {
+    return num(S.income.monthly) - num(S.saving.monthlyGoal) - monthStats().spent - num(extra);
+  }
+
+  function qtyOf() {
+    var q = Math.floor(num(draft.qty));
+    return q >= 1 ? Math.min(999, q) : 1;
+  }
+
+  function draftTotal() {
+    return num(draft.price) * qtyOf();
+  }
+
+  function wishName() {
+    var base = (draft.name || '').trim() || '未命名的心愿';
+    var q = qtyOf();
+    return q > 1 ? base + ' ×' + q : base;
+  }
+
+  function uid() {
+    return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function setText(selector, text) {
+    var el = document.querySelector(selector);
+    if (el) el.textContent = text;
+  }
+
+  function toast(msg) {
+    if (!TOAST) return;
+    toastActionFn = null;
+    TOAST.classList.remove('has-action');
+    TOAST.textContent = msg;
+    TOAST.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { TOAST.classList.remove('show'); }, 2600);
+  }
+
+  // 带一个可点按钮的提示，用于「撤销删除」这类需要二次挽回的操作
+  function toastAction(msg, label, fn) {
+    if (!TOAST) return;
+    toastActionFn = fn;
+    TOAST.innerHTML = '<span>' + esc(msg) + '</span>' +
+      '<button type="button" class="toast-btn" data-act="undo-remove">' + esc(label) + '</button>';
+    TOAST.classList.add('show', 'has-action');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5200);
+  }
+
+  function hideToast() {
+    if (!TOAST) return;
+    TOAST.classList.remove('show', 'has-action');
+    toastActionFn = null;
+    clearTimeout(toastTimer);
+    setTimeout(function () {
+      if (TOAST && !TOAST.classList.contains('show')) TOAST.innerHTML = '';
+    }, 340);
+  }
+
+  function introCard() {
+    if (S.settings.introDismissed) return '';
+    return '<div class="intro">' +
+      '<div><b>先把数字换成你自己的</b><p>工资、存款目标和常买物品的价格都可以在「设置」里改。现在显示的是一份示例。</p></div>' +
+      '<button type="button" class="btn btn-sm btn-ghost" data-act="dismiss-intro">知道了</button>' +
+    '</div>';
+  }
+
+  function stripHTML() {
+    return '<button type="button" class="strip" data-act="tab" data-tab="set" title="点击修改收入和存款设置">' +
+      '<div><span>时薪</span><b>' + money(hourlyWage()) + '</b></div>' +
+      '<div><span>日薪</span><b>' + money(dailyWage()) + '</b></div>' +
+      '<div><span>月薪</span><b>' + money(S.income.monthly) + '</b></div>' +
+    '</button>';
+  }
+
+  function goalCard() {
+    var target = num(S.saving.target);
+    if (!(target > 0)) return '';
+    var current = num(S.saving.current);
+    var monthly = num(S.saving.monthlyGoal);
+    var pct = Math.min(100, current / target * 100);
+    var left = target - current;
+    var sub;
+    if (left <= 0) {
+      sub = '目标已达成，继续保持 🎉';
+    } else if (monthly > 0) {
+      sub = money(current) + ' / ' + money(target) + ' · 按每月 ' + money(monthly) + '，还需 ' + Math.ceil(left / monthly) + ' 个月';
+    } else {
+      sub = money(current) + ' / ' + money(target);
+    }
+    return '<section class="goal">' +
+      '<div class="row-head"><span>存款目标</span><b>' + Math.round(pct) + '%</b></div>' +
+      '<div class="bar green"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="sub-line">' + sub + '</div>' +
+    '</section>';
+  }
+
+  function emptyCalc() {
+    return '<div class="empty-soft">' +
+      '<div class="es-emoji" aria-hidden="true">🫧</div>' +
+      '<p>输入价格，看看它值你多少时间</p>' +
+      '<span>鸡蛋、牛奶、一顿饭……都会替你算清楚</span>' +
+    '</div>';
+  }
+
+  function resultsHTML(price, fresh) {
+    var hourly = hourlyWage();
+    var monthly = num(S.income.monthly);
+    var hours = priceToHours(price);
+    var pct = salaryPct(price);
+    var warnAt = num(S.settings.warnPercent) || 5;
+    var saveMonthly = num(S.saving.monthlyGoal);
+    var saveDays = saveMonthly > 0 ? price / (saveMonthly / 30.44) : 0;
+    var items = (S.items || []).filter(function (it) { return num(it.price) > 0; }).slice(0, 10);
+    var cdLabel = hoursLabel(cooldownHours());
+    var parts = [];
+
+    parts.push(
+      '<section class="life">' +
+        '<div class="k">你要用生命中的</div>' +
+        '<div class="v">' + (hourly > 0 ? fmtWork(hours) : '先填工资') + '</div>' +
+        '<div class="s">' + (hourly > 0 ? '来交换它 · 按时薪 ' + money(hourly) + ' 计算' : '去「设置」填上你的月薪，才能换算成时间') + '</div>' +
+      '</section>'
+    );
+
+    if (monthly > 0) {
+      var left = monthly - price;
+      var leftText = left >= 0 ? '扣掉它，这个月工资还剩 ' + money(left) : '它比你一个月的工资还多 ' + money(-left);
+      var free = freeBudget(price);
+      var freeText = free >= 0
+        ? '再扣掉攒钱目标和本月已花，自由支配的钱还剩 ' + money(free)
+        : '这会超出本月能自由支配的钱 ' + money(-free);
+      parts.push(
+        '<section class="panel-card">' +
+          '<div class="row-head"><span>占你月薪的比例</span><b>' + fmtPct(pct) + '</b></div>' +
+          '<div class="bar ' + (pct >= warnAt ? 'warn' : '') + '"><span style="width:' + Math.min(100, pct) + '%"></span></div>' +
+          '<div class="sub-line">' + leftText + '</div>' +
+          '<div class="sub-line">' + freeText + '</div>' +
+        '</section>'
+      );
+    }
+
+    if (saveDays > 0) {
+      var dayText = saveDays >= 1 ? fmtInt(saveDays) : String(Math.round(saveDays * 10) / 10);
+      var monthPct = Math.min(100, price / saveMonthly * 100);
+      parts.push(
+        '<section class="panel-card">' +
+          '<div class="row-head"><span>换成攒钱进度</span><b>' + dayText + ' 天</b></div>' +
+          '<div class="bar green"><span style="width:' + monthPct + '%"></span></div>' +
+          '<div class="sub-line">按每月攒 ' + money(saveMonthly) + '，买了的话，攒钱目标会推迟 ' + dayText + ' 天</div>' +
+        '</section>'
+      );
+    }
+
+    if (items.length) {
+      parts.push('<div class="sec-title"><span>这笔钱还能换成</span><span>' + items.length + ' 种参照物</span></div>');
+      var cards = items.map(function (it) {
+        var count = price / num(it.price);
+        var label = count >= 1 ? fmtInt(count) : '不到 1';
+        return '<div class="eq"><span class="emo" aria-hidden="true">' + esc(it.emoji || '🛍️') + '</span>' +
+          '<div class="eq-txt"><b>' + label + '</b><span>' + esc(it.unit || '') + esc(it.name || '') + '</span></div></div>';
+      });
+      parts.push('<div class="eq-grid">' + cards.join('') + '</div>');
+    } else {
+      parts.push('<section class="panel-card"><div class="sub-line">还没有物品价格。去「设置」里加上鸡蛋、牛奶、一顿饭的价格吧。</div></section>');
+    }
+
+    if (pct >= warnAt) {
+      var copy;
+      if (pct >= 50) {
+        copy = '超过半个月的工资。先别付款，把它放进冷静清单，' + cdLabel + '后再看。';
+      } else if (pct >= 20) {
+        copy = '接近你月薪的四分之一。这不是小钱，给自己 ' + cdLabel + '。';
+      } else {
+        copy = '超过你月薪的 ' + fmtPct(warnAt) + '。放进冷静清单，等一等再决定。';
+      }
+      parts.push(
+        '<div class="note" role="alert">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3 19.5h18L12 4z"/><path d="M12 10v4.2M12 16.8v.2"/></svg>' +
+          '<p>' + copy + '</p>' +
+        '</div>'
+      );
+    }
+
+    parts.push(
+      '<div class="actions">' +
+        '<button type="button" class="btn btn-primary" data-act="cooldown">先冷静 ' + cdLabel + ' · 放进清单</button>' +
+        '<button type="button" class="btn btn-ghost" data-act="resist">算了，我不买了</button>' +
+      '</div>' +
+      '<p class="hint">放进清单后，冷静期结束前不能决定购买。给冲动留一点时间。</p>'
+    );
+
+    return '<div class="results' + (fresh ? ' reveal' : '') + '">' + parts.join('') + '</div>';
+  }
+
+  function calcView() {
+    var qty = qtyOf();
+    var reasonChips = REASONS.map(function (r) {
+      return '<button type="button" class="chip' + (draft.reason === r ? ' on' : '') + '" data-act="reason" data-reason="' + esc(r) + '" aria-pressed="' + (draft.reason === r) + '">' + esc(r) + '</button>';
+    }).join('');
+    return introCard() +
+    stripHTML() +
+    '<section class="calc">' +
+      '<label class="lbl" for="wantPrice">' + (qty > 1 ? '单价是多少' : '这个想买的东西，多少钱') + '</label>' +
+      '<div class="price-row">' +
+        '<span class="cur" aria-hidden="true">¥</span>' +
+        '<input id="wantPrice" class="price-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0" value="' + esc(draft.price) + '" autocomplete="off" aria-label="想买的东西的价格" />' +
+      '</div>' +
+      '<input id="wantName" class="name-input" maxlength="30" placeholder="它是什么？比如一双新球鞋（可不填）" value="' + esc(draft.name) + '" autocomplete="off" aria-label="想买的东西的名称" />' +
+      '<div class="qty-row">' +
+        '<span class="qty-label" id="qtyLabel">数量</span>' +
+        '<div class="stepper" role="group" aria-labelledby="qtyLabel">' +
+          '<button type="button" data-act="qty-step" data-step="-1" aria-label="减少数量"' + (qty <= 1 ? ' disabled' : '') + '>−</button>' +
+          '<b aria-live="polite">' + qty + '</b>' +
+          '<button type="button" data-act="qty-step" data-step="1" aria-label="增加数量"' + (qty >= 999 ? ' disabled' : '') + '>+</button>' +
+        '</div>' +
+        '<span class="qty-total">' + (qty > 1 ? '合计 ' + money(draftTotal()) : '') + '</span>' +
+      '</div>' +
+      '<div class="chips">' +
+        '<button type="button" class="chip" data-act="quick" data-price="50">¥50</button>' +
+        '<button type="button" class="chip" data-act="quick" data-price="199">¥199</button>' +
+        '<button type="button" class="chip" data-act="quick" data-price="599">¥599</button>' +
+        '<button type="button" class="chip" data-act="quick" data-price="1999">¥1999</button>' +
+        '<button type="button" class="chip chip-clear" data-act="clear">清空</button>' +
+      '</div>' +
+      '<div class="reason-wrap">' +
+        '<div class="lbl-row"><span class="qty-label" id="reasonLbl">为什么想要</span><span class="rw-opt">可不选</span></div>' +
+        '<div class="chips" role="group" aria-labelledby="reasonLbl">' + reasonChips + '</div>' +
+      '</div>' +
+    '</section>' +
+    '<div id="calcOut"></div>' +
+    goalCard();
+  }
+
+  function wishCard(w) {
+    var hours = num(w.hours);
+    var total = Math.max(1, hours * 3600000);
+    var rem = w.at + hours * 3600000 - Date.now();
+    var done = rem <= 0;
+    var pct = done ? 100 : Math.min(100, Math.max(0, (Date.now() - w.at) / total * 100));
+    var label = done ? '冷静期结束，可以决定了' : '冷静期还剩 ' + fmtRemain(rem);
+    var meta = '工作 ' + fmtWork(priceToHours(w.price)) + ' · 月薪的 ' + fmtPct(salaryPct(w.price));
+    return '<article class="wish ' + (done ? 'done' : '') + '" data-id="' + esc(w.id) + '" data-status="pending" data-at="' + w.at + '" data-hours="' + hours + '">' +
+      '<div class="wish-head">' +
+        '<div class="wish-main">' +
+          '<div class="wish-name">' + esc(w.name) + (w.reason ? '<span class="tag">' + esc(w.reason) + '</span>' : '') + '</div>' +
+          '<div class="wish-meta">' + meta + '</div>' +
+        '</div>' +
+        '<div class="wish-price">' + money(w.price) + '</div>' +
+      '</div>' +
+      '<div class="timer">' +
+        '<div class="timer-row"><span class="timer-text">' + label + '</span><span class="timer-pct">' + Math.round(pct) + '%</span></div>' +
+        '<div class="timer-bar"><span style="width:' + pct + '%"></span></div>' +
+      '</div>' +
+      '<div class="wish-actions">' +
+        '<button type="button" class="btn btn-sm btn-green" data-act="abandon" data-id="' + esc(w.id) + '">不买了</button>' +
+        '<button type="button" class="btn btn-sm btn-ghost" data-act="buy" data-id="' + esc(w.id) + '"' + (done ? '' : ' disabled') + '>' + (done ? '决定买了' : '还得等等') + '</button>' +
+        '<button type="button" class="icon-btn" data-act="remove" data-id="' + esc(w.id) + '" aria-label="从清单移除" title="删除">✕</button>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function decidedCard(w) {
+    var abandoned = w.status === 'abandoned';
+    return '<article class="wish decided" data-id="' + esc(w.id) + '">' +
+      '<div class="wish-head">' +
+        '<div class="wish-main">' +
+          '<div class="wish-name">' + esc(w.name) + (w.reason ? '<span class="tag">' + esc(w.reason) + '</span>' : '') + '</div>' +
+          '<div class="wish-meta">' + fmtDate(w.decidedAt || w.at) + ' · ' + (abandoned ? '没买，省下了' : '买了，用掉了') + '</div>' +
+        '</div>' +
+        '<div class="wish-tail">' +
+          '<div class="wish-price ' + (abandoned ? 'saved' : '') + '">' + (abandoned ? '+' : '−') + money(w.price) + '</div>' +
+          '<button type="button" class="icon-btn" data-act="remove" data-id="' + esc(w.id) + '" aria-label="删除这条记录" title="删除">✕</button>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function emptyWish() {
+    return '<div class="empty">' +
+      '<span class="e" aria-hidden="true">🕰️</span>' +
+      '<p>清单还是空的。<br>想买的东西，先放进来冷静 ' + hoursLabel(cooldownHours()) + '。</p>' +
+    '</div>';
+  }
+
+  function wishView() {
+    // 待决定的按到期时间排序：最快到期的排最前
+    var pending = (S.wishlist || []).filter(function (w) { return w.status === 'pending'; })
+      .sort(function (a, b) {
+        return (a.at + num(a.hours) * 3600000) - (b.at + num(b.hours) * 3600000);
+      });
+    var decided = (S.wishlist || []).filter(function (w) { return w.status !== 'pending'; })
+      .sort(function (a, b) { return (b.decidedAt || b.at) - (a.decidedAt || a.at); })
+      .slice(0, 20);
+    var ms = monthStats();
+    var all = allStats();
+    return '<section class="page-head"><h2>冷静清单</h2><p>先放一放，' + hoursLabel(cooldownHours()) + '后再决定。最快到期的排在最前面。很多想要的东西，会自己消失。</p></section>' +
+      '<section class="stats">' +
+        '<div class="stat"><span>冷静中</span><b>' + pending.length + ' 件</b></div>' +
+        '<div class="stat"><span>本月拦下</span><b class="green-text">' + money(ms.saved) + '</b></div>' +
+        '<div class="stat"><span>本月花掉</span><b>' + money(ms.spent) + '</b></div>' +
+      '</section>' +
+      '<p class="stats-total">累计不买了 <b>' + all.resisted + ' 件</b>，省下 <b>' + money(all.saved) + '</b></p>' +
+      (pending.length ? pending.map(wishCard).join('') : emptyWish()) +
+      (decided.length ? '<div class="sec-title"><span>已做决定</span><span>' + decided.length + ' 件</span></div>' + decided.map(decidedCard).join('') : '') +
+      reportCard() +
+      reasonCard();
+  }
+
+  function fieldRow(label, path, value, prefix, suffix, hint) {
+    return '<div class="field">' +
+      '<div class="field-label"><label>' + label + '</label>' + (hint ? '<span class="hint-sm">' + hint + '</span>' : '') + '</div>' +
+      '<div class="inp">' +
+        (prefix ? '<span>' + prefix + '</span>' : '') +
+        '<input data-path="' + path + '" type="number" inputmode="decimal" min="0" step="any" value="' + esc(value) + '" aria-label="' + label + '">' +
+        (suffix ? '<span>' + suffix + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function itemRow(it) {
+    return '<div class="item" data-item-id="' + esc(it.id) + '">' +
+      '<input class="item-emoji" data-field="emoji" maxlength="2" value="' + esc(it.emoji || '🛍️') + '" aria-label="图标">' +
+      '<input class="item-name" data-field="name" maxlength="12" value="' + esc(it.name || '') + '" aria-label="名称">' +
+      '<div class="item-price"><span>¥</span><input data-field="price" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(it.price)) + '" aria-label="单价"></div>' +
+      '<input class="item-unit" data-field="unit" maxlength="2" value="' + esc(it.unit || '') + '" aria-label="单位">' +
+      '<button type="button" class="icon-btn" data-act="del-item" data-id="' + esc(it.id) + '" aria-label="删除">✕</button>' +
+    '</div>';
+  }
+
+  function settingsView() {
+    var hourly = hourlyWage();
+    var daily = dailyWage();
+    var target = num(S.saving.target);
+    var current = num(S.saving.current);
+    var goalMonthly = num(S.saving.monthlyGoal);
+    var goalPct = target > 0 ? Math.min(100, current / target * 100) : 0;
+    var goalText = target > 0
+      ? (current >= target ? '目标已达成，继续保持 🎉' : '已完成 ' + Math.round(goalPct) + '%' + (goalMonthly > 0 ? ' · 按每月 ' + money(goalMonthly) + '，还需 ' + Math.ceil((target - current) / goalMonthly) + ' 个月' : ''))
+      : '还没有设置存款目标';
+    var cooldown = cooldownHours();
+    var coolOptions = [6, 12, 24, 48, 72].map(function (h) {
+      return '<button type="button" data-act="cool" data-hours="' + h + '" class="' + (cooldown === h ? 'on' : '') + '">' + (h >= 24 ? (h / 24) + ' 天' : h + ' 小时') + '</button>';
+    }).join('');
+    var items = S.items || [];
+    var freeLine = num(S.income.monthly) > 0
+      ? '<div class="derived">本月可自由支配 <b data-out="free">' + money(freeBudget(0)) + '</b><span>月薪 − 攒钱目标 − 本月已花</span></div>'
+      : '';
+
+    return '<section class="page-head"><h2>设置</h2><p>数字填得越真，换算越有痛感。</p></section>' +
+      '<section class="panel">' +
+        '<h3>收入</h3>' +
+        fieldRow('月薪（税后）', 'income.monthly', S.income.monthly, '¥', '', '按实际到手计算') +
+        fieldRow('每月工作天数', 'income.workDays', S.income.workDays, '', '天', '') +
+        fieldRow('每天工作小时', 'income.hoursPerDay', S.income.hoursPerDay, '', '小时', '') +
+        '<div class="derived">时薪 <b data-out="hourly">' + money(hourly) + '</b><span>·</span>日薪 <b data-out="daily">' + money(daily) + '</b></div>' +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>攒钱</h3>' +
+        fieldRow('每月攒钱目标', 'saving.monthlyGoal', S.saving.monthlyGoal, '¥', '', '') +
+        fieldRow('存款目标总额', 'saving.target', S.saving.target, '¥', '', '') +
+        fieldRow('目前已存', 'saving.current', S.saving.current, '¥', '', '') +
+        '<div class="bar green goal-bar"><span data-out="goalbar" style="width:' + goalPct + '%"></span></div>' +
+        '<div class="sub-line" data-out="goaltext">' + goalText + '</div>' +
+        freeLine +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>冷静期</h3>' +
+        '<div class="panel-hint">点「先冷静」后，到期前不能决定购买。设置得长一点，更容易省下钱。</div>' +
+        '<div class="seg">' + coolOptions + '</div>' +
+        '<div class="field plain" style="margin-top:14px">' +
+          '<div class="field-label"><label for="coolCustom">自定义</label><span class="hint-sm">1 – 720 小时</span></div>' +
+          '<div class="inp"><input id="coolCustom" type="number" inputmode="numeric" min="1" max="720" step="1" value="' + cooldown + '"><span>小时</span></div>' +
+        '</div>' +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>物品价格库</h3>' +
+        '<div class="panel-hint">换算时用来对照。改掉价格，首页会立刻跟着变。</div>' +
+        '<div class="items">' + (items.length ? items.map(itemRow).join('') : '<div class="sub-line">还没有物品，添加一个吧。</div>') + '</div>' +
+        '<div class="add-item">' +
+          '<input id="ni-emoji" class="mini emoji-inp" maxlength="2" placeholder="🍞" aria-label="图标">' +
+          '<input id="ni-name" class="mini" maxlength="12" placeholder="名称，如面包" aria-label="名称">' +
+          '<input id="ni-price" class="mini" type="number" inputmode="decimal" min="0" step="any" placeholder="单价" aria-label="单价">' +
+          '<input id="ni-unit" class="mini" maxlength="2" placeholder="单位" aria-label="单位">' +
+          '<button type="button" class="btn btn-sm btn-ghost add-btn" data-act="add-item">＋ 添加物品</button>' +
+        '</div>' +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>同步（WebDAV）</h3>' +
+        '<div class="panel-hint">可选。换手机、清缓存之前，把记录同步到你自己的网盘。账号和密码只存在这台设备，不会写进同步出去的文件。</div>' +
+        davRow('服务器地址', 'url', davCfg.url, 'text', 'https://dav.jianguoyun.com/dav') +
+        davRow('账号', 'user', davCfg.user, 'text', '登录邮箱') +
+        davRow('应用密码', 'pass', davCfg.pass, 'password', '应用密码，不是登录密码') +
+        davRow('远程路径', 'path', davCfg.path, 'text', '冷静一下/state.json') +
+        davRow('中转地址（可选）', 'proxy', davCfg.proxy, 'text', 'https://你的中转.workers.dev') +
+        '<div class="data-actions">' +
+          '<button type="button" class="btn btn-sm btn-ghost" data-act="dav-test">测试连接</button>' +
+          '<button type="button" class="btn btn-sm btn-primary" data-act="dav-sync">立即同步</button>' +
+        '</div>' +
+        '<div id="davStatus" class="dav-status">' + esc(davCfg.last || '还没同步过') + '</div>' +
+        '<div class="panel-hint dav-note">浏览器直连 WebDAV 会被跨域策略拦下（坚果云、Nextcloud 默认都不返回跨域头）。两个解法：把页面和 WebDAV 放在同一个域名下，或者填一个中转地址。打包成 App 后不需要中转。</div>' +
+      '</section>' +
+      '<section class="panel">' +
+        '<h3>数据</h3>' +
+        '<div class="panel-hint">数据默认只存在这台设备的浏览器里。换手机、清缓存之前，先导出一份备份，或者用上面的 WebDAV 同步。</div>' +
+        '<div class="data-actions">' +
+          '<button type="button" class="btn btn-sm btn-ghost" data-act="export">导出备份</button>' +
+          '<button type="button" class="btn btn-sm btn-ghost" data-act="import">导入备份</button>' +
+        '</div>' +
+        '<div class="data-actions">' +
+          '<button type="button" class="btn btn-sm danger-btn" data-act="clear-decided">清理已做决定</button>' +
+          '<button type="button" class="btn btn-sm danger-btn" data-act="reset">清空所有数据</button>' +
+        '</div>' +
+        '<input id="importFile" type="file" accept=".json,application/json" hidden>' +
+      '</section>' +
+      '<p class="foot">冷静一下 · 你的时间比购物车贵</p>';
+  }
+
+  // 最近 6 个月：拦下的钱 vs 花掉的钱
+  function monthlySeries() {
+    var out = [];
+    var now = new Date();
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push({ y: d.getFullYear(), m: d.getMonth(), label: (d.getMonth() + 1) + '月', saved: 0, spent: 0 });
+    }
+    (S.wishlist || []).forEach(function (w) {
+      if (w.status !== 'abandoned' && w.status !== 'bought') return;
+      var d = new Date(num(w.decidedAt) || num(w.at));
+      for (var j = 0; j < out.length; j++) {
+        if (out[j].y === d.getFullYear() && out[j].m === d.getMonth()) {
+          if (w.status === 'abandoned') out[j].saved += num(w.price);
+          else out[j].spent += num(w.price);
+          break;
+        }
+      }
+    });
+    return out;
+  }
+
+  function reportCard() {
+    var series = monthlySeries();
+    var max = 0;
+    var savedSum = 0;
+    var spentSum = 0;
+    series.forEach(function (m) {
+      max = Math.max(max, m.saved, m.spent);
+      savedSum += m.saved;
+      spentSum += m.spent;
+    });
+    if (!(max > 0)) return '';
+    var bars = series.map(function (m) {
+      var hs = Math.round(m.saved / max * 100);
+      var hp = Math.round(m.spent / max * 100);
+      return '<div class="chart-month">' +
+        '<div class="chart-bars" title="' + m.label + '：拦下 ' + money(m.saved) + '，花掉 ' + money(m.spent) + '">' +
+          '<span class="b-saved" style="height:' + hs + '%"></span>' +
+          '<span class="b-spent" style="height:' + hp + '%"></span>' +
+        '</div>' +
+        '<em>' + m.label + '</em>' +
+      '</div>';
+    }).join('');
+    return '<section class="panel report">' +
+      '<h3>最近 6 个月</h3>' +
+      '<div class="panel-hint">半年里拦下 ' + money(savedSum) + '，花掉 ' + money(spentSum) + '。</div>' +
+      '<div class="chart" role="img" aria-label="最近 6 个月拦下与花掉的金额对比">' + bars + '</div>' +
+      '<div class="legend"><span><i class="lg-saved"></i>拦下</span><span><i class="lg-spent"></i>花掉</span></div>' +
+    '</section>';
+  }
+
+  // 本月冲动来源分布
+  function reasonCard() {
+    var now = new Date();
+    var counts = {};
+    var total = 0;
+    (S.wishlist || []).forEach(function (w) {
+      if (!w.reason) return;
+      var d = new Date(num(w.decidedAt) || num(w.at));
+      if (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) return;
+      counts[w.reason] = (counts[w.reason] || 0) + 1;
+      total += 1;
+    });
+    if (!total) return '';
+    var keys = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 4);
+    var rows = keys.map(function (k) {
+      var pct = Math.max(8, Math.round(counts[k] / total * 100));
+      return '<div class="reason-row">' +
+        '<span class="rn">' + esc(k) + '</span>' +
+        '<span class="rb"><b style="width:' + pct + '%"></b></span>' +
+        '<span class="rc">' + counts[k] + ' 件</span>' +
+      '</div>';
+    }).join('');
+    return '<section class="panel report">' +
+      '<h3>这个月的冲动来源</h3>' +
+      '<div class="panel-hint">看清自己为什么想买，比忍住一次更有用。</div>' +
+      rows +
+    '</section>';
+  }
+
+  // 反向激励：省下的钱够多少顿饭
+  function equivalentPhrase(price) {
+    var items = (S.items || []).filter(function (it) { return num(it.price) > 0; });
+    var meal = null;
+    for (var i = 0; i < items.length; i++) {
+      if (/饭|餐/.test(items[i].name || '')) { meal = items[i]; break; }
+    }
+    if (!meal) return '';
+    var n = Math.floor(num(price) / num(meal.price));
+    if (n < 1) return '';
+    return '，够 ' + n + ' 顿' + (meal.name || '饭');
+  }
+
+  function exportData() {
+    try {
+      var payload = { app: 'coinguard', version: 1, exportedAt: Date.now(), data: S };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var d = new Date();
+      var stamp = '' + d.getFullYear() + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) + (d.getDate() < 10 ? '0' : '') + d.getDate();
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = '冷静一下-备份-' + stamp + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      toast('备份文件已导出');
+    } catch (err) {
+      toast('这个浏览器导不出来，可以手动复制数据');
+    }
+  }
+
+  function importData(file) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(String(reader.result));
+        var d = parsed && parsed.data ? parsed.data : parsed;
+        if (!d || typeof d !== 'object') throw new Error('bad');
+        S = {
+          income: Object.assign({}, DEFAULTS.income, d.income || {}),
+          saving: Object.assign({}, DEFAULTS.saving, d.saving || {}),
+          settings: Object.assign({}, DEFAULTS.settings, d.settings || {}),
+          items: Array.isArray(d.items) ? d.items : clone(DEFAULTS.items),
+          wishlist: Array.isArray(d.wishlist) ? d.wishlist : [],
+          tomb: d.tomb && typeof d.tomb === 'object' ? { w: d.tomb.w || {}, i: d.tomb.i || {} } : { w: {}, i: {} },
+          updatedAt: num(d.updatedAt)
+        };
+        save();
+        render();
+        toast('已导入，清单里有 ' + S.wishlist.length + ' 条记录');
+      } catch (err) {
+        toast('这个文件读不出来，换一份备份试试');
+      }
+    };
+    reader.onerror = function () { toast('读取文件失败'); };
+    reader.readAsText(file);
+  }
+
+  function clearDecided(btn) {
+    if (!clearArm) {
+      clearArm = true;
+      btn.textContent = '再点一次，确认清理';
+      btn.classList.add('armed');
+      clearTimeout(clearTimer);
+      clearTimer = setTimeout(function () {
+        clearArm = false;
+        if (btn && btn.isConnected) {
+          btn.textContent = '清理已做决定';
+          btn.classList.remove('armed');
+        }
+      }, 4000);
+      return;
+    }
+    clearTimeout(clearTimer);
+    clearArm = false;
+    var before = (S.wishlist || []).length;
+    if (!S.tomb) S.tomb = { w: {}, i: {} };
+    if (!S.tomb.w) S.tomb.w = {};
+    var now = Date.now();
+    (S.wishlist || []).forEach(function (w) {
+      if (w.status !== 'pending') S.tomb.w[String(w.id)] = now;
+    });
+    S.wishlist = (S.wishlist || []).filter(function (w) { return w.status === 'pending'; });
+    save();
+    render();
+    toast('已清理 ' + (before - S.wishlist.length) + ' 条记录');
+  }
+
+  // ───────────────────────── WebDAV 同步 ─────────────────────────
+  // 凭据单独存在一个 key 里，不写进被同步的那份 JSON
+  var DAV_KEY = 'coinguard.dav.v1';
+  var davCfg = loadDav();
+  var davBusy = false;
+
+  function loadDav() {
+    var base = { url: '', user: '', pass: '', path: '冷静一下/state.json', proxy: '', last: '' };
+    try {
+      var raw = localStorage.getItem(DAV_KEY);
+      if (raw) return Object.assign(base, JSON.parse(raw) || {});
+    } catch (e) {}
+    return base;
+  }
+
+  function saveDav() {
+    try { localStorage.setItem(DAV_KEY, JSON.stringify(davCfg)); } catch (e) {}
+  }
+
+  function b64utf8(str) {
+    return btoa(unescape(encodeURIComponent(String(str))));
+  }
+
+  function davSegs() {
+    var p = String(davCfg.path || '冷静一下/state.json').trim();
+    var segs = p.split('/').filter(function (x) { return x !== ''; });
+    if (!segs.length) segs = ['state.json'];
+    return segs;
+  }
+
+  function davBuild(segs) {
+    var base = String(davCfg.url || '').trim().replace(/\/+$/, '');
+    if (!base) return '';
+    var target = base + '/' + segs.map(encodeURIComponent).join('/');
+    var proxy = String(davCfg.proxy || '').trim().replace(/\/+$/, '');
+    return proxy ? proxy + '/?u=' + encodeURIComponent(target) : target;
+  }
+
+  function davRequest(method, segs, body) {
+    var url = davBuild(segs);
+    if (!url) return Promise.reject({ kind: 'noconfig' });
+    var headers = {};
+    if (davCfg.user || davCfg.pass) {
+      headers['Authorization'] = 'Basic ' + b64utf8(davCfg.user + ':' + davCfg.pass);
+    }
+    if (body != null) headers['Content-Type'] = 'application/json; charset=utf-8';
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 20000);
+    var opt = {
+      method: method,
+      headers: headers,
+      cache: 'no-store',
+      credentials: 'omit'
+    };
+    if (body != null) opt.body = body;
+    if (ctrl) opt.signal = ctrl.signal;
+    return fetch(url, opt).then(function (r) {
+      clearTimeout(timer);
+      return r;
+    }, function (e) {
+      clearTimeout(timer);
+      throw { kind: e && e.name === 'AbortError' ? 'timeout' : 'network', error: e };
+    });
+  }
+
+  function davExplain(err) {
+    if (!err) return '同步失败，原因不明';
+    if (err.kind === 'noconfig') return '先填服务器地址';
+    if (err.kind === 'auth') return '账号或应用密码不对。注意要用「应用密码」，不是登录密码';
+    if (err.kind === 'timeout') return '连接超时，检查地址和网络';
+    if (err.kind === 'network') return '连不上。地址写错、网络不通，或浏览器把跨域请求拦下了，后两种情况下填「中转地址」就能解决';
+    if (err.kind === 'status') {
+      if (err.status === 403) return '服务器拒绝访问（403），检查账号权限';
+      if (err.status === 404) return '远程路径不存在（404），检查远程路径写法';
+      if (err.status === 405) return '服务器不接受这个操作（405）';
+      if (err.status === 409) return '远程目录不存在，自动创建失败（409）';
+      if (err.status === 507) return 'WebDAV 空间不足（507）';
+      if (err.status === 200) return '远程文件不是本应用的备份，已放弃写入';
+      return '服务器返回 ' + err.status;
+    }
+    return '同步失败，原因不明';
+  }
+
+  function davGet() {
+    return davRequest('GET', davSegs()).then(function (r) {
+      if (r.status === 401) throw { kind: 'auth' };
+      if (r.status === 404) return null;
+      if (!r.ok) throw { kind: 'status', status: r.status };
+      return r.text().then(function (txt) {
+        var doc = null;
+        try { doc = JSON.parse(txt); } catch (e) { throw { kind: 'status', status: 200 }; }
+        if (!doc || typeof doc !== 'object') throw { kind: 'status', status: 200 };
+        return doc.data && typeof doc.data === 'object' ? doc.data : doc;
+      });
+    });
+  }
+
+  function davMkcolAll() {
+    var dirs = davSegs().slice(0, -1);
+    var chain = [];
+    for (var i = 1; i <= dirs.length; i++) chain.push(dirs.slice(0, i));
+    return chain.reduce(function (p, part) {
+      return p.then(function () {
+        return davRequest('MKCOL', part).then(function (r) {
+          if (r.status >= 400 && r.status !== 405) throw { kind: 'status', status: r.status };
+        });
+      });
+    }, Promise.resolve());
+  }
+
+  function davPut(doc) {
+    var body = JSON.stringify(doc);
+    var put = function () {
+      return davRequest('PUT', davSegs(), body).then(function (r) {
+        if (r.status === 401) throw { kind: 'auth' };
+        if (!r.ok && r.status !== 409) throw { kind: 'status', status: r.status };
+        return r.status;
+      });
+    };
+    return put().then(function (status) {
+      if (status !== 409) return true;
+      return davMkcolAll().then(put).then(function (s2) {
+        if (s2 === 409) throw { kind: 'status', status: 409 };
+        return true;
+      });
+    });
+  }
+
+  function mergeTomb(a, b) {
+    var out = { w: {}, i: {} };
+    ['w', 'i'].forEach(function (k) {
+      var x = (a && a[k]) || {};
+      var y = (b && b[k]) || {};
+      Object.keys(x).forEach(function (id) { out[k][id] = Math.max(num(x[id]), num(out[k][id])); });
+      Object.keys(y).forEach(function (id) { out[k][id] = Math.max(num(y[id]), num(out[k][id])); });
+    });
+    return out;
+  }
+
+  // 同一条记录两边都改过时，取更新的那份
+  function mergeList(a, b, stamp) {
+    var map = {};
+    var order = [];
+    (a || []).concat(b || []).forEach(function (x) {
+      if (!x || x.id == null) return;
+      var k = String(x.id);
+      if (!map[k]) { map[k] = x; order.push(k); return; }
+      if (stamp(x) > stamp(map[k])) map[k] = x;
+    });
+    return order.map(function (k) { return map[k]; });
+  }
+
+  function dropTomb(list, tomb) {
+    return (list || []).filter(function (x) {
+      var t = num(tomb && tomb[String(x.id)]);
+      if (!t) return true;
+      var u = num(x._u) || num(x.decidedAt) || num(x.at) || 0;
+      return u > t;
+    });
+  }
+
+  function pruneTomb(tomb) {
+    var cut = Date.now() - 180 * 86400000;
+    var out = { w: {}, i: {} };
+    ['w', 'i'].forEach(function (k) {
+      var src = (tomb && tomb[k]) || {};
+      Object.keys(src).forEach(function (id) {
+        if (num(src[id]) > cut) out[k][id] = src[id];
+      });
+    });
+    return out;
+  }
+
+  function mergeDoc(local, remote) {
+    var ln = num(local && local.updatedAt);
+    var rn = num(remote && remote.updatedAt);
+    var base = rn > ln ? remote : local;
+    var other = base === remote ? local : remote;
+    var tomb = mergeTomb(base.tomb, other.tomb);
+    var out = {
+      income: base.income || other.income,
+      saving: base.saving || other.saving,
+      settings: base.settings || other.settings,
+      tomb: tomb,
+      items: dropTomb(mergeList(base.items, other.items, function (x) { return num(x._u) || 0; }), tomb.i),
+      wishlist: dropTomb(mergeList(base.wishlist, other.wishlist, function (x) {
+        return num(x._u) || num(x.decidedAt) || num(x.at) || 0;
+      }), tomb.w)
+    };
+    out.updatedAt = Date.now();
+    return out;
+  }
+
+  function applyDoc(doc) {
+    S = {
+      income: Object.assign({}, DEFAULTS.income, doc.income || {}),
+      saving: Object.assign({}, DEFAULTS.saving, doc.saving || {}),
+      settings: Object.assign({}, DEFAULTS.settings, doc.settings || {}),
+      items: Array.isArray(doc.items) ? doc.items : clone(DEFAULTS.items),
+      wishlist: Array.isArray(doc.wishlist) ? doc.wishlist : [],
+      tomb: pruneTomb(doc.tomb || {}),
+      updatedAt: num(doc.updatedAt)
+    };
+    save();
+    render();
+  }
+
+  function davStatus(text) {
+    var el = document.getElementById('davStatus');
+    if (el) el.textContent = text;
+  }
+
+  function davTest() {
+    if (davBusy) return;
+    if (!String(davCfg.url || '').trim()) { toast('先去上面填 WebDAV 地址'); return; }
+    davBusy = true;
+    davStatus('正在连接…');
+    davGet().then(function (doc) {
+      davBusy = false;
+      if (!doc) {
+        davStatus('连接成功 · 远程还没有文件，第一次同步会自动创建');
+        toast('连接成功，远程是空的');
+        return;
+      }
+      var n = (doc.wishlist || []).length;
+      davStatus('连接成功 · 远程有 ' + n + ' 条记录');
+      toast('连接成功，远程有 ' + n + ' 条记录');
+    }).catch(function (err) {
+      davBusy = false;
+      davStatus(davExplain(err));
+      toast(davExplain(err));
+    });
+  }
+
+  function davSync() {
+    if (davBusy) return;
+    if (!String(davCfg.url || '').trim()) { toast('先去上面填 WebDAV 地址'); return; }
+    davBusy = true;
+    davStatus('正在同步…');
+    davGet().then(function (remote) {
+      var merged = mergeDoc(JSON.parse(JSON.stringify(S)), remote || { updatedAt: 0 });
+      return davPut(merged).then(function () { return merged; });
+    }).then(function (merged) {
+      applyDoc(merged);
+      davBusy = false;
+      var t = new Date();
+      var hh = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
+      davCfg.last = '上次同步 ' + hh + ' · 成功 · 本地 ' + (S.wishlist || []).length + ' 条记录';
+      saveDav();
+      davStatus(davCfg.last);
+      toast('同步完成');
+    }).catch(function (err) {
+      davBusy = false;
+      davStatus(davExplain(err));
+      toast(davExplain(err));
+    });
+  }
+
+  function davRow(label, key, value, type, placeholder) {
+    return '<div class="field wide">' +
+      '<div class="field-label"><label>' + label + '</label></div>' +
+      '<div class="inp">' +
+        '<input data-dav="' + key + '" type="' + type + '" value="' + esc(value || '') + '" placeholder="' + esc(placeholder || '') + '" aria-label="' + label + '" autocomplete="off" spellcheck="false">' +
+      '</div>' +
+    '</div>';
+  }
+
+  function updateCalc() {
+    var total = draftTotal();
+    var qtyTotal = document.querySelector('.qty-row .qty-total');
+    if (qtyTotal) qtyTotal.textContent = qtyOf() > 1 ? '合计 ' + money(total) : '';
+    var out = document.getElementById('calcOut');
+    if (!out) return;
+    var hasResult = total > 0;
+    // 只在从空状态首次出现结果时做入场动画，逐字输入时不重复闪动
+    var fresh = hasResult && out.getAttribute('data-has') !== '1';
+    out.setAttribute('data-has', hasResult ? '1' : '0');
+    out.innerHTML = hasResult ? resultsHTML(total, fresh) : emptyCalc();
+  }
+
+  function tickTimers() {
+    var nodes = document.querySelectorAll('.wish[data-status="pending"]');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var at = parseInt(el.getAttribute('data-at'), 10);
+      var hours = parseFloat(el.getAttribute('data-hours'));
+      if (!isFinite(at) || !isFinite(hours)) continue;
+      var total = Math.max(1, hours * 3600000);
+      var rem = at + hours * 3600000 - Date.now();
+      var done = rem <= 0;
+      var pct = done ? 100 : Math.min(100, Math.max(0, (Date.now() - at) / total * 100));
+      var textEl = el.querySelector('.timer-text');
+      var pctEl = el.querySelector('.timer-pct');
+      var barEl = el.querySelector('.timer-bar > span');
+      var buyBtn = el.querySelector('[data-act="buy"]');
+      if (textEl) textEl.textContent = done ? '冷静期结束，可以决定了' : '冷静期还剩 ' + fmtRemain(rem);
+      if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+      if (barEl) barEl.style.width = pct + '%';
+      if (buyBtn) {
+        if (done) {
+          buyBtn.disabled = false;
+          buyBtn.textContent = '决定买了';
+          el.classList.add('done');
+        } else {
+          buyBtn.disabled = true;
+          buyBtn.textContent = '还得等等';
+          el.classList.remove('done');
+        }
+      }
+    }
+  }
+
+  function updateSettingsOutputs() {
+    setText('[data-out="hourly"]', money(hourlyWage()));
+    setText('[data-out="daily"]', money(dailyWage()));
+    setText('[data-out="free"]', money(freeBudget(0)));
+    var target = num(S.saving.target);
+    var current = num(S.saving.current);
+    var monthly = num(S.saving.monthlyGoal);
+    var pct = target > 0 ? Math.min(100, current / target * 100) : 0;
+    var bar = document.querySelector('[data-out="goalbar"]');
+    if (bar) bar.style.width = pct + '%';
+    var text;
+    if (target <= 0) text = '还没有设置存款目标';
+    else if (current >= target) text = '目标已达成，继续保持 🎉';
+    else if (monthly > 0) text = '已完成 ' + Math.round(pct) + '% · 按每月 ' + money(monthly) + '，还需 ' + Math.ceil((target - current) / monthly) + ' 个月';
+    else text = '已完成 ' + Math.round(pct) + '%';
+    setText('[data-out="goaltext"]', text);
+  }
+
+  function render() {
+    if (!VIEW) return;
+    if (tab === 'calc') VIEW.innerHTML = calcView();
+    else if (tab === 'wish') VIEW.innerHTML = wishView();
+    else VIEW.innerHTML = settingsView();
+    updateTabs();
+    updatePill();
+    if (tab === 'calc') updateCalc();
+    if (tab === 'wish') tickTimers();
+  }
+
+  function setTab(t) {
+    if (t === 'set' && !S.settings.introDismissed) {
+      S.settings.introDismissed = true;
+      save();
+    }
+    tab = t;
+    render();
+    try { window.scrollTo(0, 0); } catch (err) {}
+  }
+
+  function updateTabs() {
+    if (!TABBAR) return;
+    var btns = TABBAR.querySelectorAll('[data-tab]');
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute('data-tab') === tab;
+      btns[i].classList.toggle('active', on);
+      if (on) btns[i].setAttribute('aria-current', 'page');
+      else btns[i].removeAttribute('aria-current');
+    }
+  }
+
+  function updatePill() {
+    if (!PILL) return;
+    var ms = monthStats();
+    PILL.innerHTML = '本月拦下 <b>' + money(ms.saved) + '</b>';
+  }
+
+  function setQuick(v) {
+    var input = document.getElementById('wantPrice');
+    draft.price = v == null ? '' : String(v);
+    if (input) input.value = draft.price;
+    updateCalc();
+  }
+
+  function setQty(n) {
+    draft.qty = Math.min(999, Math.max(1, Math.floor(num(n)) || 1));
+    render();
+  }
+
+  function addToCooldown() {
+    var price = draftTotal();
+    if (!(price > 0)) { toast('先输入一个价格'); return; }
+    var hours = cooldownHours();
+    S.wishlist.unshift({ id: uid(), name: wishName(), price: price, at: Date.now(), hours: hours, status: 'pending', reason: draft.reason || '' });
+    save();
+    draft = { name: '', price: '', qty: 1, reason: '' };
+    tab = 'wish';
+    render();
+    toast('已放进冷静清单，' + hoursLabel(hours) + '后再决定');
+  }
+
+  function resistNow() {
+    var price = draftTotal();
+    if (!(price > 0)) { toast('先输入一个价格'); return; }
+    S.wishlist.unshift({ id: uid(), name: wishName(), price: price, at: Date.now(), hours: 0, status: 'abandoned', decidedAt: Date.now(), reason: draft.reason || '' });
+    save();
+    draft = { name: '', price: '', qty: 1, reason: '' };
+    render();
+    toast('忍住了，省下 ' + money(price) + equivalentPhrase(price));
+  }
+
+  function decide(id, status) {
+    var list = (S.wishlist || []).filter(function (x) { return x.id === id; });
+    var w = list[0];
+    if (!w) return;
+    if (status === 'bought') {
+      var until = w.at + num(w.hours) * 3600000;
+      if (Date.now() < until) { toast('冷静期还没结束，再等等'); return; }
+      w.status = 'bought';
+      w.decidedAt = Date.now();
+      save();
+      render();
+      toast('已记录：这笔花掉 ' + money(w.price) + '，相当于工作 ' + fmtWork(priceToHours(w.price)));
+      return;
+    }
+    w.status = 'abandoned';
+    w.decidedAt = Date.now();
+    save();
+    render();
+    toast('不买了，省下 ' + money(w.price) + equivalentPhrase(w.price));
+  }
+
+  function removeWish(id) {
+    var list = (S.wishlist || []).slice();
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(id)) { idx = i; break; }
+    }
+    if (idx < 0) { toast('这条记录已经不在了'); return; }
+    var w = list[idx];
+    S.wishlist = list.filter(function (x, j) { return j !== idx; });
+    if (!S.tomb) S.tomb = { w: {}, i: {} };
+    if (!S.tomb.w) S.tomb.w = {};
+    S.tomb.w[String(w.id)] = Date.now();   // 墓碑：同步时告诉另一端「这条是删掉的，不是没有」
+    save();
+    render();
+    toastAction('已删除「' + (w.name || '这条记录') + '」', '撤销', function () {
+      var back = (S.wishlist || []).slice();
+      back.splice(Math.min(idx, back.length), 0, w);
+      S.wishlist = back;
+      if (S.tomb && S.tomb.w) delete S.tomb.w[String(w.id)];
+      save();
+      render();
+      toast('已恢复');
+    });
+  }
+
+  function addItem() {
+    var emojiEl = document.getElementById('ni-emoji');
+    var nameEl = document.getElementById('ni-name');
+    var priceEl = document.getElementById('ni-price');
+    var unitEl = document.getElementById('ni-unit');
+    var emoji = ((emojiEl && emojiEl.value) || '').trim() || '🛍️';
+    var name = ((nameEl && nameEl.value) || '').trim();
+    var price = num(priceEl && priceEl.value);
+    var unit = ((unitEl && unitEl.value) || '').trim() || '个';
+    if (!name) { toast('写一下物品名称'); return; }
+    if (!(price > 0)) { toast('单价要大于 0'); return; }
+    S.items.push({ id: uid(), name: name, price: price, unit: unit, emoji: emoji });
+    save();
+    render();
+    toast('已添加：' + name);
+  }
+
+  function resetData(btn) {
+    if (!resetArm) {
+      resetArm = true;
+      btn.textContent = '再点一次，确认清空';
+      btn.classList.add('armed');
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(function () {
+        resetArm = false;
+        btn.textContent = '清空所有数据';
+        btn.classList.remove('armed');
+      }, 4000);
+      return;
+    }
+    clearTimeout(resetTimer);
+    resetArm = false;
+    try { localStorage.removeItem(KEY); } catch (err) {}
+    S = clone(DEFAULTS);
+    draft = { name: '', price: '', qty: 1, reason: '' };
+    save();
+    render();
+    toast('已清空，恢复到示例数据');
+  }
+
+  function onDocumentClick(e) {
+    var tabBtn = e.target.closest('[data-tab]');
+    if (tabBtn && TABBAR && TABBAR.contains(tabBtn)) {
+      setTab(tabBtn.getAttribute('data-tab'));
+      return;
+    }
+    var btn = e.target.closest('[data-act]');
+    if (!btn || btn.disabled) return;
+    var act = btn.getAttribute('data-act');
+    var id = btn.getAttribute('data-id');
+    switch (act) {
+      case 'tab': setTab(btn.getAttribute('data-tab')); break;
+      case 'quick': setQuick(btn.getAttribute('data-price')); break;
+      case 'clear': setQuick(''); break;
+      case 'qty-step': setQty(qtyOf() + num(btn.getAttribute('data-step'))); break;
+      case 'reason':
+        var r = btn.getAttribute('data-reason') || '';
+        draft.reason = draft.reason === r ? '' : r;
+        var chips = document.querySelectorAll('[data-act="reason"]');
+        for (var i = 0; i < chips.length; i++) {
+          var on = chips[i].getAttribute('data-reason') === draft.reason;
+          chips[i].classList.toggle('on', on);
+          chips[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+        break;
+      case 'dismiss-intro':
+        S.settings.introDismissed = true;
+        save();
+        render();
+        break;
+      case 'cooldown': addToCooldown(); break;
+      case 'resist': resistNow(); break;
+      case 'abandon': decide(id, 'abandoned'); break;
+      case 'buy': decide(id, 'bought'); break;
+      case 'remove': removeWish(id); break;
+      case 'undo-remove':
+        if (toastActionFn) {
+          var undoFn = toastActionFn;
+          toastActionFn = null;
+          undoFn();
+        }
+        break;
+      case 'cool':
+        S.settings.cooldownHours = num(btn.getAttribute('data-hours')) || 24;
+        save();
+        render();
+        break;
+      case 'del-item':
+        if (!S.tomb) S.tomb = { w: {}, i: {} };
+        if (!S.tomb.i) S.tomb.i = {};
+        S.tomb.i[String(id)] = Date.now();
+        S.items = (S.items || []).filter(function (x) { return x.id !== id; });
+        save();
+        render();
+        break;
+      case 'add-item': addItem(); break;
+      case 'export': exportData(); break;
+      case 'import':
+        var pick = document.getElementById('importFile');
+        if (pick) pick.click();
+        break;
+      case 'clear-decided': clearDecided(btn); break;
+      case 'dav-test': davTest(); break;
+      case 'dav-sync': davSync(); break;
+      case 'reset': resetData(btn); break;
+    }
+  }
+
+  function onInput(e) {
+    var el = e.target;
+    if (!el || !el.tagName) return;
+    var davKey = el.getAttribute && el.getAttribute('data-dav');
+    if (davKey) { davCfg[davKey] = el.value; saveDav(); return; }
+    if (el.id === 'wantPrice') { draft.price = el.value; updateCalc(); return; }
+    if (el.id === 'wantName') { draft.name = el.value; return; }
+    if (el.id === 'coolCustom') {
+      if (el.value === '') return;
+      var h = Math.round(num(el.value));
+      if (!(h > 0)) return;
+      h = Math.min(720, h);
+      S.settings.cooldownHours = h;
+      save();
+      var segs = document.querySelectorAll('[data-act="cool"]');
+      for (var k = 0; k < segs.length; k++) {
+        segs[k].classList.toggle('on', num(segs[k].getAttribute('data-hours')) === h);
+      }
+      if (num(el.value) !== h) el.value = String(h);
+      return;
+    }
+
+    var path = el.getAttribute && el.getAttribute('data-path');
+    if (path) {
+      var parts = path.split('.');
+      var obj = S;
+      for (var i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
+      if (obj) {
+        obj[parts[parts.length - 1]] = num(el.value);
+        save();
+        updateSettingsOutputs();
+      }
+      return;
+    }
+
+    var row = el.closest('[data-item-id]');
+    if (row && el.getAttribute('data-field')) {
+      var itemId = row.getAttribute('data-item-id');
+      var found = (S.items || []).filter(function (x) { return x.id === itemId; });
+      var it = found[0];
+      if (!it) return;
+      var field = el.getAttribute('data-field');
+      it[field] = field === 'price' ? num(el.value) : el.value;
+      save();
+    }
+  }
+
+  function init() {
+    VIEW = document.getElementById('view');
+    TABBAR = document.getElementById('tabbar');
+    TOAST = document.getElementById('toast');
+    PILL = document.getElementById('monthPill');
+    document.addEventListener('click', onDocumentClick);
+    document.addEventListener('input', onInput);
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.id === 'importFile') {
+        importData(e.target.files && e.target.files[0]);
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+      var t = e.target;
+      if (!t || (t.id !== 'wantPrice' && t.id !== 'wantName')) return;
+      e.preventDefault();
+      addToCooldown();
+    });
+    render();
+    setInterval(function () { if (tab === 'wish') tickTimers(); }, 20000);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && tab === 'wish') tickTimers();
+    });
+  }
+
+  // 打包成 App 后：安卓返回键先回首页，在首页再按一次才退出
+  var capApp = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+  if (capApp && capApp.addListener) {
+    var exitArmed = false;
+    capApp.addListener('backButton', function () {
+      if (tab !== 'calc') { setTab('calc'); return; }
+      if (exitArmed) { if (capApp.exitApp) capApp.exitApp(); return; }
+      exitArmed = true;
+      toast('再按一次返回键退出');
+      setTimeout(function () { exitArmed = false; }, 2000);
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
